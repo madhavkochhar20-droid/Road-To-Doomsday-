@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Every MCU film and Disney+ series in chronological order, with a live countdown to Avengers: Doomsday and a personal watch tracker.">
+<meta name="theme-color" content="#08090B">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Road to Doomsday — MCU Chronology">
+<meta property="og:description" content="Every MCU film and Disney+ series in order, a live countdown to Avengers: Doomsday, and a watch tracker.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>The Road to Doomsday — MCU Chronology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+  /* ---------- Tokens: light default, dark overrides ---------- */
+  :root{
+    --ink:        #17181C;
+    --paper:      #F4F1EA;
+    --surface:    #FFFFFF;
+    --line:       #DAD5C8;
+    --muted:      #6B6558;
+    --doom:       #1FA84A;
+    --doom-dim:   #E1F7E8;
+    --doom-glow:  #3DDB68;
+    --ember:      #D9631E;
+    --ember-dim:  #FBE6D4;
+    --font-display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+    --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:        #EDEAE2;
+      --paper:      #08090B;
+      --surface:    #131513;
+      --line:       #23261F;
+      --muted:      #96988E;
+      --doom:       #33D65C;
+      --doom-dim:   #0E2416;
+      --doom-glow:  #4CFF6E;
+      --ember:      #F0904D;
+      --ember-dim:  #3A2618;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:        #EDEAE2;
+    --paper:      #08090B;
+    --surface:    #131513;
+    --line:       #23261F;
+    --muted:      #96988E;
+    --doom:       #33D65C;
+    --doom-dim:   #0E2416;
+    --doom-glow:  #4CFF6E;
+    --ember:      #F0904D;
+    --ember-dim:  #3A2618;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, color-mix(in srgb, var(--doom) 10%, transparent), transparent 70%),
+      var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:999;
+    pointer-events:none;
+    opacity:0.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .scroll-progress{
+    position:fixed;
+    top:0; left:0;
+    height:3px;
+    width:0%;
+    background:linear-gradient(90deg, var(--doom), var(--doom-glow));
+    box-shadow:0 0 10px var(--doom-glow);
+    z-index:1000;
+    transition:width .1s linear;
+  }
+
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .rise{
+    opacity:0;
+    animation:rise 0.7s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes doomed-glow{
+    0%, 100%{
+      opacity:0.11;
+      letter-spacing:0.01em;
+      text-shadow:
+        0 0 8px color-mix(in srgb, var(--doom-glow) 35%, transparent),
+        0 0 24px transparent;
+    }
+    50%{
+      opacity:0.3;
+      letter-spacing:0.035em;
+      text-shadow:
+        0 0 18px var(--doom-glow),
+        0 0 55px color-mix(in srgb, var(--doom-glow) 85%, transparent),
+        0 0 140px color-mix(in srgb, var(--doom-glow) 55%, transparent);
+    }
+  }
+  @keyframes rotate-slow{
+    from{ transform:rotate(0deg); }
+    to{ transform:rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rise{ opacity:1; animation:none; transform:none; }
+  }
+
+  a{ color:var(--doom); }
+
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 0;
+  }
+  .brand{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:0.02em;
+  }
+  .brand em{
+    font-style:normal;
+    color:var(--doom);
+  }
+  .live-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    font-weight:500;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:5px 12px;
+    border-radius:999px;
+  }
+  .mast-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .theme-btn{
+    width:30px; height:30px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .theme-btn:hover{ border-color:var(--doom); color:var(--doom); }
+  .live-dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background:var(--doom);
+    box-shadow:0 0 8px var(--doom-glow);
+    animation:pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot{
+    0%, 100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.4; transform:scale(0.8); }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    padding:92px 0 48px;
+    border-bottom:1px solid var(--line);
+    border-top:1px solid var(--line);
+    overflow:hidden;
+  }
+  .beams{
+    position:absolute;
+    top:50%; left:70%;
+    width:480px; height:480px;
+    margin:-240px 0 0 -240px;
+    background:conic-gradient(from 0deg,
+      transparent 0deg,
+      color-mix(in srgb, var(--doom-glow) 14%, transparent) 8deg,
+      transparent 20deg,
+      transparent 100deg,
+      color-mix(in srgb, var(--doom-glow) 10%, transparent) 112deg,
+      transparent 128deg,
+      transparent 220deg,
+      color-mix(in srgb, var(--doom-glow) 12%, transparent) 230deg,
+      transparent 246deg,
+      transparent 360deg);
+    animation:rotate-slow 9s linear infinite;
+    pointer-events:none;
+    z-index:0;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .beams{ animation:none; }
+  }
+  .hero::before{
+    content:"";
+    position:absolute;
+    top:-60px;
+    right:-60px;
+    width:220px;
+    height:220px;
+    background:radial-gradient(circle, color-mix(in srgb, var(--doom-glow) 28%, transparent) 0%, transparent 70%);
+    filter:blur(10px);
+    pointer-events:none;
+    z-index:0;
+  }
+  .doomed-mark{
+    position:absolute;
+    left:50%;
+    top:52%;
+    transform:translate(-50%,-50%) rotate(-3deg);
+    width:max-content;
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(60px, 12vw, 180px);
+    letter-spacing:0.01em;
+    color:color-mix(in srgb, var(--doom-glow) 30%, transparent);
+    -webkit-text-stroke:1px color-mix(in srgb, var(--doom-glow) 65%, var(--line) 35%);
+    mix-blend-mode:screen;
+    white-space:nowrap;
+    pointer-events:none;
+    z-index:0;
+    opacity:0.11;
+    animation:doomed-glow 4.5s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .doomed-mark{ animation:none; opacity:0.14; text-shadow:0 0 30px var(--doom-glow); }
+  }
+  .hero > *{ position:relative; z-index:1; }
+  .throne-bg{
+    background-image:url("assets/throne-bg.jpg");
+    position:absolute;
+    inset:-20px;
+    background-size:cover;
+    background-position:top 65%;
+    background-repeat:no-repeat;
+    filter:blur(1.5px) brightness(0.65);
+    opacity:0.45;
+    -webkit-mask-image:linear-gradient(to bottom, black 55%, transparent 90%);
+    mask-image:linear-gradient(to bottom, black 55%, transparent 90%);
+    z-index:0;
+    pointer-events:none;
+  }
+  .kicker{
+    font-family:var(--font-body);
+    font-size:14px;
+    font-weight:600;
+    color:var(--ember);
+    margin:0 0 10px;
+  }
+  .kicker::before{
+    content:"◆ ";
+  }
+  h1{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(52px, 10vw, 104px);
+    line-height:0.9;
+    letter-spacing:-0.015em;
+    margin:0 0 18px;
+  }
+  h1 span{
+    display:block;
+    color:var(--doom);
+    animation:glow 3.2s ease-in-out infinite alternate;
+  }
+  @keyframes glow{
+    from{ text-shadow:0 0 6px transparent; }
+    to{ text-shadow:0 0 28px var(--doom-glow), 0 0 6px var(--doom-glow); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    h1 span{ animation:none; text-shadow:0 0 16px var(--doom-glow); }
+  }
+  .dek{
+    max-width:56ch;
+    font-size:17px;
+    color:var(--muted);
+    margin:0 0 28px;
+  }
+
+  .countdown-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:stretch;
+    gap:20px;
+    margin-bottom:8px;
+  }
+  .countdown{
+    display:flex;
+    gap:22px;
+    padding:18px 26px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    position:relative;
+    overflow:hidden;
+  }
+  .countdown-label{
+    position:absolute;
+    top:8px; left:26px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .countdown{ padding-top:26px; }
+  .cbox{ text-align:left; }
+  .cbox .num{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:40px;
+    line-height:1;
+    color:var(--doom);
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0 14px color-mix(in srgb, var(--doom-glow) 45%, transparent);
+    transition:transform .15s ease;
+  }
+  .cbox .num.tick{ transform:scale(1.12); }
+  .cbox .lab{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .target-date{
+    font-size:14px;
+    color:var(--muted);
+    align-self:center;
+  }
+  .target-date strong{ color:var(--ink); }
+
+  /* ---------- Progress tracker ---------- */
+  .progress-summary{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:16px 0 0;
+  }
+  .progress-summary .ptext{
+    font-size:13px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .progress-summary .ptext strong{ color:var(--doom); }
+  .progress-track{
+    flex:1;
+    height:6px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg, var(--doom), var(--doom-glow));
+    box-shadow:0 0 8px var(--doom-glow);
+    transition:width .4s ease;
+  }
+  .progress-reset{
+    font-size:12px;
+    color:var(--muted);
+    background:none;
+    border:none;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:0;
+    white-space:nowrap;
+  }
+  .progress-reset:hover{ color:var(--doom); }
+  .share-btn{
+    font-size:12px;
+    color:var(--muted);
+    background:none;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:4px 12px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .share-btn:hover{ border-color:var(--doom); color:var(--doom); }
+
+  /* ---------- Controls ---------- */
+  .search-input{
+    font-family:var(--font-body);
+    font-size:13px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:7px 14px;
+    background:var(--surface);
+    color:var(--ink);
+    outline:none;
+    min-width:140px;
+  }
+  .search-input:focus{ border-color:var(--doom); }
+  .essential-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    user-select:none;
+  }
+  .essential-toggle input{ accent-color:var(--doom); }
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 12px;
+    align-items:center;
+    padding:22px 0;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    background:var(--paper);
+    z-index:5;
+  }
+  .toggle{
+    display:inline-flex;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:3px;
+    gap:2px;
+  }
+  .toggle button{
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:600;
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    padding:7px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background-color .2s ease, color .2s ease;
+  }
+  .toggle button:hover:not(.active){
+    color:var(--ink);
+  }
+  .toggle button.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-left:auto;
+  }
+  .chip{
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:500;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--muted);
+    padding:6px 13px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:border-color .2s ease, color .2s ease, transform .15s ease;
+  }
+  .chip:hover:not(.active){
+    border-color:var(--doom);
+    color:var(--ink);
+    transform:translateY(-1px);
+  }
+  .chip.active{
+    border-color:var(--doom);
+    color:var(--doom);
+    background:var(--doom-dim);
+  }
+
+  /* ---------- Timeline ---------- */
+  .timeline{
+    position:relative;
+    padding-top:8px;
+  }
+  .phase-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    padding:38px 0 14px;
+  }
+  .phase-head:first-child{ padding-top:26px; }
+  .phase-num{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:22px;
+    color:var(--ember);
+    min-width:34px;
+  }
+  .phase-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:24px;
+    letter-spacing:0.01em;
+  }
+  .phase-span{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .entry{
+    display:grid;
+    grid-template-columns:64px 1fr;
+    gap:16px;
+    padding:18px 68px 18px 16px;
+    margin-left:-16px;
+    border-top:1px solid var(--line);
+    border-left:3px solid transparent;
+    position:relative;
+    transition:border-left-color .25s ease, background-color .25s ease, transform .25s ease;
+    clip-path:inset(0 0 0 0);
+  }
+  .entry:last-child{ border-bottom:1px solid var(--line); }
+  .entry:hover{
+    border-left-color:var(--doom);
+    background-color:color-mix(in srgb, var(--doom) 5%, transparent);
+    transform:translateX(4px);
+  }
+  .entry:hover .poster{ transform:scale(1.06); }
+  .entry.reveal{
+    animation:wipe-in .6s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes wipe-in{
+    from{ clip-path:inset(0 100% 0 0); opacity:0; }
+    to{ clip-path:inset(0 0 0 0); opacity:1; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .entry.reveal{ animation:none; }
+  }
+
+  .poster{
+    position:relative;
+    width:64px;
+    height:64px;
+    border-radius:14px;
+    flex-shrink:0;
+    transition:transform .25s ease;
+  }
+  .poster::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:14px;
+    background:conic-gradient(from 0deg,
+      rgba(255,255,255,0.7), transparent 28%,
+      transparent 72%, rgba(255,255,255,0.7));
+    animation:rotate-slow 6s linear infinite;
+  }
+  .poster-inner{
+    position:absolute;
+    inset:2px;
+    border-radius:11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:19px;
+    letter-spacing:0.02em;
+    color:rgba(255,255,255,0.92);
+  }
+  .poster-inner span{ position:relative; z-index:1; }
+  .poster-inner::after{
+    content:"";
+    position:absolute;
+    top:-60%; left:-60%;
+    width:220%; height:220%;
+    background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.4) 50%, transparent 58%);
+    animation:shimmer 3.4s ease-in-out infinite;
+  }
+  @keyframes shimmer{
+    0%{ transform:translate(-20%,-20%); }
+    50%{ transform:translate(14%,14%); }
+    100%{ transform:translate(-20%,-20%); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .poster::before{ animation:none; }
+    .poster-inner::after{ animation:none; opacity:0.5; }
+  }
+
+  .meta{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:2px;
+  }
+  .entry .idx{
+    font-family:var(--font-display);
+    font-size:13px;
+    color:var(--muted);
+  }
+  .entry .year{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:22px;
+    color:var(--ink);
+    line-height:1.1;
+  }
+  .entry .title{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:17px;
+    margin:2px 0 6px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:color .2s ease;
+  }
+  .entry .title:hover{ color:var(--doom); }
+  .entry .check{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:17px; height:17px;
+    border:1.5px solid var(--line);
+    border-radius:4px;
+    font-size:12px;
+    line-height:1;
+    color:transparent;
+    flex-shrink:0;
+    transition:background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .entry.watched{
+    border-left-color:var(--doom);
+    background-color:color-mix(in srgb, var(--doom) 4%, transparent);
+  }
+  .entry.watched .title{
+    color:var(--muted);
+    text-decoration:line-through;
+    text-decoration-color:var(--doom);
+  }
+  .entry.watched .check{
+    background:var(--doom);
+    border-color:var(--doom);
+    color:var(--surface);
+  }
+  .up-next{
+    border-left-color:var(--ember) !important;
+    background-color:color-mix(in srgb, var(--ember) 6%, transparent);
+  }
+  .up-next-badge{
+    display:inline-block;
+    margin-left:8px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ember);
+    background:var(--ember-dim);
+    padding:2px 8px;
+    border-radius:999px;
+    vertical-align:middle;
+  }
+  .skip-tag{
+    display:inline-block;
+    margin-left:8px;
+    font-size:11px;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:1px 7px;
+    border-radius:999px;
+    vertical-align:middle;
+  }
+  .type-tag{
+    display:inline-block;
+    margin-left:8px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--doom);
+    border:1px solid var(--doom);
+    padding:1px 7px;
+    border-radius:999px;
+    vertical-align:middle;
+  }
+  .imdb-badge{
+    position:absolute;
+    top:10px;
+    right:10px;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,0.25);
+    z-index:1;
+  }
+  .imdb-badge.high{ color:var(--doom); border-color:var(--doom); }
+  .imdb-badge.mid{ color:var(--ember); border-color:var(--ember); }
+  .imdb-badge.low{ color:#C0392B; border-color:#C0392B; }
+  .imdb-badge.tba{ color:var(--muted); }
+
+  /* ---------- Milestone celebration ---------- */
+  .milestone{
+    position:fixed;
+    inset:0;
+    z-index:1300;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.72);
+    animation:rise 0.4s ease forwards;
+  }
+  .milestone-card{
+    background:var(--surface);
+    border:1px solid var(--doom);
+    border-radius:12px;
+    padding:40px 36px;
+    text-align:center;
+    max-width:420px;
+    box-shadow:0 0 60px color-mix(in srgb, var(--doom-glow) 45%, transparent);
+  }
+  .milestone-card .icon{ font-size:48px; margin-bottom:14px; }
+  .milestone-card h2{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:30px;
+    color:var(--doom);
+    margin:0 0 10px;
+  }
+  .milestone-card p{ color:var(--muted); font-size:14px; margin:0 0 22px; }
+  .milestone-close{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:13px;
+    color:var(--paper);
+    background:var(--doom);
+    border:none;
+    padding:10px 22px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+
+  /* ---------- Completion burst ---------- */
+  .burst{
+    position:fixed;
+    left:0; top:0;
+    pointer-events:none;
+    z-index:1200;
+  }
+  .burst-emoji{
+    position:absolute;
+    left:0; top:0;
+    transform:translate(-50%,-50%);
+    font-size:34px;
+    animation:burst-pop 0.9s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  .burst-ring{
+    position:absolute;
+    left:0; top:0;
+    width:16px; height:16px;
+    margin:-8px 0 0 -8px;
+    border:3px solid var(--ring-color, var(--doom));
+    border-radius:50%;
+    animation:burst-ring 0.8s ease-out forwards;
+  }
+  @keyframes burst-pop{
+    0%{ transform:translate(-50%,-50%) scale(0.3) rotate(-8deg); opacity:0; }
+    35%{ transform:translate(-50%,-50%) scale(1.25) rotate(4deg); opacity:1; }
+    100%{ transform:translate(-50%,-85%) scale(1) rotate(0deg); opacity:0; }
+  }
+  @keyframes burst-ring{
+    0%{ width:16px; height:16px; margin:-8px 0 0 -8px; opacity:0.85; }
+    100%{ width:120px; height:120px; margin:-60px 0 0 -60px; opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .burst{ display:none; }
+  }
+  .entry .desc{
+    font-size:14.5px;
+    color:var(--muted);
+    max-width:60ch;
+  }
+  .entry .tag{
+    display:inline-block;
+    margin-top:8px;
+    font-size:12px;
+    font-weight:500;
+    color:var(--ember);
+    background:var(--ember-dim);
+    padding:3px 9px;
+    border-radius:5px;
+  }
+
+  .finale{
+    margin-top:10px;
+    padding:26px;
+    background:var(--doom-dim);
+    border:1px solid var(--doom);
+    border-radius:8px;
+    box-shadow:0 0 0 transparent;
+    animation:finale-pulse 3.2s ease-in-out infinite alternate;
+  }
+  .finale .title{ color:var(--ink); font-size:19px; }
+  .finale .idx, .finale .year{ color:var(--doom); }
+  .finale .poster::before{
+    background:conic-gradient(from 0deg,
+      var(--doom-glow), transparent 28%,
+      transparent 72%, var(--doom-glow));
+    animation-duration:2.4s;
+  }
+  @keyframes finale-pulse{
+    from{ box-shadow:0 0 0px transparent; }
+    to{ box-shadow:0 0 24px color-mix(in srgb, var(--doom-glow) 35%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .finale{ animation:none; box-shadow:0 0 14px color-mix(in srgb, var(--doom-glow) 25%, transparent); }
+  }
+
+  footer{
+    padding-top:40px;
+    font-size:13px;
+    color:var(--muted);
+    max-width:64ch;
+  }
+  footer a{ color:var(--muted); text-decoration-color:var(--line); }
+
+  @media (max-width:560px){
+    .entry{ grid-template-columns:52px 1fr; gap:12px; }
+    .poster{ width:52px; height:52px; font-size:15px; border-radius:8px; }
+    .countdown{ gap:12px; flex-wrap:wrap; }
+    .cbox .num{ font-size:30px; }
+    .doomed-mark{ font-size:clamp(46px, 20vw, 90px); }
+    .masthead{ padding:10px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scroll-progress"></div>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="brand">CINE<em>PHOBIC</em></div>
+    <div class="mast-right">
+      <div class="live-pill"><span class="live-dot"></span>Tracking live</div>
+      <button class="theme-btn" id="theme-btn" title="Toggle theme">◐</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="throne-bg"></div>
+    <div class="beams"></div>
+    <div class="doomed-mark">WE'RE DOOMED!</div>
+    <p class="kicker rise" style="animation-delay:.05s">Avengers Doomsday Countdown by CinePhobic</p>
+    <h1 class="rise" style="animation-delay:.15s">The road to<span>Doomsday.</span></h1>
+    <p class="dek rise" style="animation-delay:.3s">Every Marvel Cinematic Universe film and Disney+ series, arranged as the story actually happens — from a Brooklyn back alley in 1943 to a throne room in Latveria.</p>
+
+    <div class="countdown-row rise" style="animation-delay:.45s">
+      <div class="countdown">
+        <span class="countdown-label">Countdown to release</span>
+        <div class="cbox"><div class="num" id="c-days">–</div><div class="lab">days</div></div>
+        <div class="cbox"><div class="num" id="c-hours">–</div><div class="lab">hours</div></div>
+        <div class="cbox"><div class="num" id="c-mins">–</div><div class="lab">mins</div></div>
+        <div class="cbox"><div class="num" id="c-secs">–</div><div class="lab">secs</div></div>
+      </div>
+      <div class="target-date">until <strong>Avengers: Doomsday</strong> — Dec 18, 2026</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="toggle" id="order-toggle">
+      <button data-order="chrono" class="active">In-universe order</button>
+      <button data-order="release">Release order</button>
+    </div>
+    <input type="text" class="search-input" id="search-input" placeholder="Search a movie…">
+    <label class="essential-toggle"><input type="checkbox" id="essential-only">Essential only</label>
+    <div class="chips" id="phase-chips"></div>
+  </div>
+
+  <div class="progress-summary">
+    <span class="ptext" id="progress-text">0 of 51 watched</span>
+    <span class="ptext" id="progress-time">~0h left</span>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <button class="share-btn" id="share-btn">Share progress</button>
+    <button class="progress-reset" id="progress-reset">Reset progress</button>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+
+  <div id="milestone-slot"></div>
+
+  <footer>
+    Placement for time-jumping stories — <em>Avengers: Endgame</em>, <em>Eternals</em>, the No Way Home multiverse, <em>Fantastic Four: First Steps</em>' retro-futuristic Earth, and where the Disney+ series slot in around them — follows the most common fan reading, not an official studio timeline. Animated anthology titles like <em>What If…?</em> are left out since they're non-canon. The <strong>X-Men Universe</strong> filter covers the original Fox X-Men films (Earth-10005) — a separate continuity from the main MCU timeline above, included as a bonus since <em>Deadpool &amp; Wolverine</em> bridges the two. Release dates for 2026 titles reflect the latest public schedule and may still shift.
+  </footer>
+
+</div>
+
+<script>
+    const MOVIES = [
+    {p:1, ph:"Origins", span:"1943 – 2013", i:1, y:"1943", ry:2011, t:"Captain America: The First Avenger", d:"A frail Brooklyn kid takes an experimental serum and disappears into Arctic ice fighting Hydra.", ic:"🛡️", rt:124, sk:false, imdb:6.9},
+    {p:1, i:2, y:"1995", ry:2019, t:"Captain Marvel", d:"An Air Force pilot recovers her memory and the full scope of her power amid a Kree–Skrull conflict on Earth.", ic:"✨", rt:123, sk:true, imdb:6.8},
+    {p:1, i:3, y:"2010", ry:2008, t:"Iron Man", d:"A weapons manufacturer builds a suit of armor in a cave and reinvents himself as Iron Man.", ic:"🤖", rt:126, sk:false, imdb:7.9},
+    {p:1, i:4, y:"2010", ry:2010, t:"Iron Man 2", d:"Tony Stark faces a vengeful rival while the arc reactor keeping him alive slowly poisons him.", ic:"⚙️", rt:124, sk:true, imdb:6.9},
+    {p:1, i:5, y:"2011", ry:2011, t:"The Incredible Hulk", d:"A gamma radiation accident leaves Bruce Banner hunted by the military and by the monster inside him.", ic:"💢", rt:112, sk:true, imdb:6.6},
+    {p:1, i:6, y:"2011", ry:2011, t:"Thor", d:"An arrogant Asgardian prince is stripped of his power and exiled to Earth to learn humility.", ic:"🔨", rt:115, sk:false, imdb:7.0},
+    {p:1, i:7, y:"2012", ry:2012, t:"The Avengers", d:"Loki opens a portal for an alien army over New York, forcing Earth's separate heroes to fight as one team.", ic:"🦸", rt:143, sk:false, imdb:8.0},
+    {p:1, i:8, y:"2013", ry:2013, t:"Thor: The Dark World", d:"Thor and a newly escaped Loki join forces to stop an ancient race of Dark Elves from remaking the universe.", ic:"🌑", rt:112, sk:true, imdb:6.8},
+    {p:2, ph:"Fallout", span:"2013 – 2015", i:9, y:"2013", ry:2013, t:"Iron Man 3", d:"Tony Stark rebuilds himself, without the suit, after New York leaves him shaken and a terrorist targets his home.", ic:"🔥", rt:130, sk:true, imdb:7.1},
+    {p:2, i:10, y:"2014", ry:2014, t:"Guardians of the Galaxy", d:"A ragtag crew of misfits bands together to keep a stolen orb out of the hands of a fanatic bent on genocide.", ic:"🌌", rt:121, sk:false, imdb:8.0},
+    {p:2, i:11, y:"2014", ry:2017, t:"Guardians of the Galaxy Vol. 2", d:"Star-Lord meets his father at last, and the Guardians learn what family actually costs.", ic:"🚀", rt:136, sk:true, imdb:7.6},
+    {p:2, i:12, y:"2015", ry:2015, t:"Avengers: Age of Ultron", d:"Tony Stark's peacekeeping AI wakes up hostile and decides humanity itself is the threat to end.", ic:"🤖", rt:141, sk:false, imdb:7.3},
+    {p:2, i:13, y:"2015", ry:2015, t:"Ant-Man", d:"A cat burglar puts on a size-shifting suit to pull off one impossible, world-saving heist.", ic:"🐜", rt:117, sk:true, imdb:7.3},
+    {p:3, ph:"Divided", span:"2016 – 2018", i:14, y:"2016", ry:2016, t:"Captain America: Civil War", d:"A dispute over accountability for collateral damage splits the Avengers into two warring sides.", ic:"🛡️", rt:147, sk:false, imdb:7.8},
+    {p:3, i:15, y:"2016", ry:2021, t:"Black Widow", d:"Natasha Romanoff confronts the family, and the program, that turned her into a weapon.", ic:"🕷️", rt:134, sk:true, imdb:6.7},
+    {p:3, i:16, y:"2016", ry:2016, t:"Doctor Strange", d:"A brilliant, arrogant surgeon loses the use of his hands and finds a stranger kind of power instead.", ic:"🔮", rt:115, sk:false, imdb:7.5},
+    {p:3, i:17, y:"2016–17", ry:2018, t:"Black Panther", d:"T'Challa returns home to claim Wakanda's throne and defend it from a challenger with a personal grudge.", ic:"🐾", rt:134, sk:false, imdb:7.3},
+    {p:3, i:18, y:"2016", ry:2017, t:"Spider-Man: Homecoming", d:"Peter Parker tries to juggle high school with his first real mission as a hero, against Tony Stark's advice.", ic:"🕸️", rt:133, sk:true, imdb:7.4},
+    {p:3, i:19, y:"2017", ry:2017, t:"Thor: Ragnarok", d:"Thor is thrown into gladiatorial captivity across the galaxy just as his sister moves to seize Asgard.", ic:"⚡", rt:130, sk:false, imdb:7.9},
+    {p:3, i:20, y:"2018", ry:2018, t:"Avengers: Infinity War", d:"Thanos hunts down the Infinity Stones one by one while the Avengers scramble to stop the inevitable.", ic:"💎", rt:149, sk:false, imdb:8.4},
+    {p:3, i:21, y:"2018", ry:2018, t:"Ant-Man and the Wasp", d:"Scott Lang gets pulled back in for a rescue mission that reaches deep into the Quantum Realm.", ic:"🐝", rt:118, sk:true, imdb:7.0},
+    {p:3, i:22, y:"2018", ry:2019, t:"Spider-Man: Far From Home", d:"Peter Parker takes a school trip to Europe while grieving Tony Stark and inheriting a mess he didn't ask for.", ic:"🕷️", rt:129, sk:true, imdb:7.4},
+    {p:3, i:23, y:"2023*", ry:2019, t:"Avengers: Endgame", d:"The Avengers who are left attempt a time heist through their own history to undo the snap.", ic:"⏳", rt:181, sk:false, imdb:8.4},
+    {p:4, ph:"Multiverse Opens", span:"2023 – 2025", i:24, y:"2023", ry:2021, t:"WandaVision", d:"A grieving Wanda Maximoff builds a sitcom reality around herself and Vision in a small New Jersey town.", type:"series", ic:"📺", rt:405, sk:false, imdb:7.9},
+    {p:4, i:25, y:"2023", ry:2021, t:"The Falcon and the Winter Soldier", d:"Sam Wilson and Bucky Barnes reckon with Captain America's shield, and a new Cap steps into the role.", type:"series", ic:"🦅", rt:270, sk:false, imdb:7.1},
+    {p:4, i:26, y:"2023", ry:2021, t:"Loki", d:"A variant of Loki is arrested by a bureaucracy that polices time itself, and starts unraveling why he was ever meant to lose.", type:"series", ic:"⏳", rt:270, sk:false, imdb:8.2},
+    {p:4, i:27, y:"2024", ry:2021, t:"Shang-Chi and the Legend of the Ten Rings", d:"A man who buried his past in San Francisco is pulled back into his father's ancient, powerful organization.", ic:"🐉", rt:132, sk:true, imdb:7.4},
+    {p:4, i:28, y:"2023", ry:2021, t:"Hawkeye", d:"Clint Barton trains a sharp-shooting protégé while a mess from his Ronin days catches up to him at Christmas.", type:"series", ic:"🏹", rt:270, sk:false, imdb:7.4},
+    {p:4, i:29, y:"–2024", ry:2021, t:"Eternals", d:"Ancient immortals sent to guard humanity resurface to stop a threat they were never told the whole truth about.", ic:"🌠", rt:156, sk:true, imdb:6.3},
+    {p:4, i:30, y:"2024", ry:2022, t:"Moon Knight", d:"A mild-mannered gift shop worker discovers he shares his body, and an Egyptian god, with a mercenary alter ego.", type:"series", ic:"🌙", rt:270, sk:true, imdb:7.3},
+    {p:4, i:31, y:"2024", ry:2022, t:"Ms. Marvel", d:"A New Jersey teenager obsessed with the Avengers discovers a bangle that gives her real powers of her own.", type:"series", ic:"✨", rt:270, sk:false, imdb:6.2},
+    {p:4, i:32, y:"2024", ry:2022, t:"She-Hulk: Attorney at Law", d:"A lawyer inherits her cousin Bruce Banner's gamma-powered strength and tries to keep a normal legal career anyway.", type:"series", ic:"⚖️", rt:240, sk:true, imdb:5.2},
+    {p:4, i:33, y:"2024–25", ry:2021, t:"Spider-Man: No Way Home", d:"A spell gone wrong tears the multiverse open, and Peter Parker faces villains who were never meant to know his name.", ic:"🕸️", rt:148, sk:false, imdb:8.2},
+    {p:4, i:34, y:"2025", ry:2022, t:"Doctor Strange in the Multiverse of Madness", d:"Strange chases a threat across parallel universes and confronts a darker version of his own power.", ic:"🌀", rt:126, sk:false, imdb:6.9},
+    {p:4, i:35, y:"2025", ry:2022, t:"Thor: Love and Thunder", d:"Thor is forced into one more fight for family when a god-killer starts hunting his own kind.", ic:"⚡", rt:119, sk:true, imdb:6.2},
+    {p:4, i:36, y:"2025", ry:2022, t:"Black Panther: Wakanda Forever", d:"Wakanda mourns its king while a hidden underwater nation emerges as a new, formidable rival.", ic:"🌊", rt:161, sk:false, imdb:6.7},
+    {p:5, ph:"Endings, Quietly", span:"2025", i:37, y:"2025", ry:2023, t:"Secret Invasion", d:"Nick Fury uncovers a decades-long Skrull infiltration of Earth just as a faction of them turns hostile.", type:"series", ic:"👽", rt:240, sk:false, imdb:5.8},
+    {p:5, i:38, y:"2025", ry:2023, t:"Ant-Man and the Wasp: Quantumania", d:"The Lang-Van Dyne family is pulled into the Quantum Realm and face-to-face with a conqueror who's been waiting there.", ic:"🔬", rt:125, sk:true, imdb:6.0},
+    {p:5, i:39, y:"2025", ry:2023, t:"Guardians of the Galaxy Vol. 3", d:"The Guardians race to save one of their own from the creator who built him, closing out their story together.", ic:"🦝", rt:150, sk:false, imdb:7.9},
+    {p:5, i:40, y:"2025", ry:2023, t:"Loki Season 2", d:"Loki fights to keep the Sacred Timeline from unraveling as the multiverse begins branching out of control.", type:"series", ic:"⏳", rt:270, sk:false, imdb:8.2},
+    {p:5, i:41, y:"2025", ry:2023, t:"The Marvels", d:"Three heroes with entangled powers have to learn to fight as a team after their abilities start swapping them mid-battle.", ic:"✨", rt:105, sk:true, imdb:5.5},
+    {p:5, i:42, y:"2025", ry:2024, t:"Echo", d:"Maya Lopez returns home to confront her family's ties to the Kingpin's criminal empire.", type:"series", ic:"🥋", rt:225, sk:true, imdb:5.9},
+    {p:5, i:43, y:"2025", ry:2024, t:"Agatha All Along", d:"A disgraced witch assembles a coven and walks the Witches' Road to reclaim her stolen power.", type:"series", ic:"🔮", rt:360, sk:true, imdb:7.2},
+    {p:5, i:44, y:"2025", ry:2024, t:"Deadpool & Wolverine", d:"A mercenary recruits a reluctant Wolverine variant on a mission that drags the wider multiverse into view.", ic:"🗡️", rt:128, sk:true, imdb:7.7},
+    {p:5, i:45, y:"2025", ry:2025, t:"Captain America: Brave New World", d:"The new Captain America is drawn into an international incident with roots that go back decades.", ic:"🦅", rt:118, sk:false, imdb:5.7},
+    {p:5, i:46, y:"2025", ry:2025, t:"Thunderbolts*", d:"A team of morally grey operators, thrown together on a job gone wrong, are forced to become something like heroes.", ic:"⚡", rt:127, sk:false, imdb:7.3},
+    {p:6, ph:"Road to Doomsday", span:"2025 – 2026", i:47, y:"2025–26", ry:2025, t:"Daredevil: Born Again", d:"Matt Murdock returns to the mask as Wilson Fisk consolidates power as New York's mayor.", type:"series", ic:"🥊", rt:405, sk:false, imdb:8.1},
+    {p:6, i:48, y:"2026", ry:2026, t:"Ironheart", d:"Riri Williams builds her own suit of armor and gets pulled into a dangerous deal with a magic-powered rival.", type:"series", ic:"⚙️", rt:270, sk:true, imdb:4.5},
+    {p:6, i:49, y:"1960s alt.", ry:2025, t:"Fantastic Four: First Steps", d:"On a retro-futuristic parallel Earth, the First Family faces a threat that eventually reaches beyond their own universe.", ic:"🚀", rt:115, sk:false, imdb:7.4},
+    {p:6, i:50, y:"2026", ry:2026, t:"Spider-Man: Brand New Day", d:"Peter Parker steps back into the suit as the multiverse's fault lines start to close in around him.", ic:"🕷️", rt:130, sk:false, imdb:8.2},
+    {p:6, i:51, y:"2026", ry:2026, t:"Avengers: Doomsday", d:"Every remaining thread of the Multiverse Saga converges as the Avengers face their final, defining threat.", finale:true, ic:"☠️", rt:150, sk:false, imdb:null},
+    {p:7, ph:"X-Men Universe", span:"Earth-10005 — a separate continuity", i:52, y:"1962", ry:2011, t:"X-Men: First Class", d:"Charles Xavier and Erik Lehnsherr recruit young mutants together, before the Cold War and their own ideals tear them apart.", ic:"🧠", rt:131, sk:false, imdb:7.7},
+    {p:7, i:53, y:"1845–1979", ry:2009, t:"X-Men Origins: Wolverine", d:"Logan's brutal past and the black-ops program that grafted metal to his bones finally catch up with him.", ic:"🐺", rt:107, sk:true, imdb:6.0},
+    {p:7, i:54, y:"2013", ry:2013, t:"The Wolverine", d:"Logan is drawn to Japan by an old debt, and offered a way to finally shed his healing factor for good.", ic:"🐺", rt:126, sk:true, imdb:6.7},
+    {p:7, i:55, y:"1973 & 2023", ry:2014, t:"X-Men: Days of Future Past", d:"Wolverine's mind is sent decades into the past to stop an assassination that leads to a mutant apocalypse.", ic:"⏳", rt:132, sk:false, imdb:7.9},
+    {p:7, i:56, y:"1983", ry:2016, t:"X-Men: Apocalypse", d:"The X-Men's first mutant, awoken after millennia, recruits four horsemen to tear down modern civilization.", ic:"🧬", rt:144, sk:true, imdb:6.9},
+    {p:7, i:57, y:"2016", ry:2016, t:"Deadpool", d:"A wisecracking mercenary gets an experimental cure that leaves him disfigured, immortal, and out for revenge.", ic:"💥", rt:108, sk:false, imdb:8.0},
+    {p:7, i:58, y:"2000s", ry:2000, t:"X-Men", d:"Charles Xavier's school for gifted mutants faces off against Magneto's plan to force humanity to evolve.", ic:"🧬", rt:104, sk:false, imdb:7.4},
+    {p:7, i:59, y:"2000s", ry:2003, t:"X2: X-Men United", d:"A militant colonel raids Xavier's school, forcing mutants and humans onto uneasy common ground to survive.", ic:"🧬", rt:134, sk:false, imdb:7.4},
+    {p:7, i:60, y:"2000s", ry:2006, t:"X-Men: The Last Stand", d:"A so-called mutant “cure” divides the X-Men just as a resurrected Jean Grey's power spirals out of control.", ic:"🧬", rt:104, sk:true, imdb:6.6},
+    {p:7, i:61, y:"2018", ry:2018, t:"Deadpool 2", d:"Deadpool assembles a ragtag team of mutants to protect a troubled young boy from a time-travelling soldier.", ic:"💥", rt:119, sk:false, imdb:7.6},
+    {p:7, i:62, y:"1992", ry:2019, t:"Dark Phoenix", d:"A space rescue leaves Jean Grey infused with a cosmic force she can't control, and the X-Men must decide whether to save her or stop her.", ic:"🔥", rt:114, sk:true, imdb:5.7},
+    {p:7, i:63, y:"2020", ry:2020, t:"The New Mutants", d:"A group of young mutants held in a secretive facility must confront the horror versions of themselves.", ic:"🌀", rt:94, sk:true, imdb:5.0},
+    {p:7, i:64, y:"2029", ry:2017, t:"Logan", d:"An aging, ailing Wolverine cares for a failing Charles Xavier while protecting a young girl who shares his powers.", ic:"🐺", rt:137, sk:false, imdb:8.1},
+  ];
+
+  const PHASES = [
+    {n:7, title:"X-Men Universe"},
+    {n:1, title:"Origins"},
+    {n:2, title:"Fallout"},
+    {n:3, title:"Divided"},
+    {n:4, title:"Multiverse Opens"},
+    {n:5, title:"Endings, Quietly"},
+    {n:6, title:"Road to Doomsday"},
+  ];
+
+  const PHASE_COLORS = {
+    1: ["#1D3E8F","#4C7FFF"], // Space Stone — blue
+    2: ["#8A6A00","#F1C40F"], // Mind Stone — yellow
+    3: ["#7A1F22","#E63946"], // Reality Stone — red
+    4: ["#4C2A85","#8E44AD"], // Power Stone — purple
+    5: ["#8A4A0E","#E67E22"], // Soul Stone — orange
+    6: ["#0B3D24","#33D65C"], // Time Stone — green (matches Doom)
+    7: ["#8A6D1A","#D4AF37"], // X-Men gold — different continuity
+  };
+  const PHASE_ACCENT = {
+    1: "#3D6BE0", // Space
+    2: "#C9971C", // Mind
+    3: "#C0392B", // Reality
+    4: "#7D3C98", // Power
+    5: "#C36F1D", // Soul
+    6: "var(--doom)", // Time
+    7: "#B8912A", // X-Men gold
+  };
+  const STOPWORDS = new Set(["the","of","and","a","in","vs"]);
+  function initialsFor(title){
+    const words = title.replace(/[:.*]/g,"").split(/\s+/).filter(w => w && !STOPWORDS.has(w.toLowerCase()));
+    return words.slice(0,3).map(w => w[0].toUpperCase()).join("") || "?";
+  }
+
+  let order = "chrono";
+  let activePhase = "all";
+  let searchTerm = "";
+  let essentialOnly = false;
+
+  document.getElementById("search-input").addEventListener("input", e=>{
+    searchTerm = e.target.value.trim().toLowerCase();
+    render();
+  });
+  document.getElementById("essential-only").addEventListener("change", e=>{
+    essentialOnly = e.target.checked;
+    render();
+  });
+
+  // Theme toggle
+  const themeBtn = document.getElementById("theme-btn");
+  function applyTheme(t){
+    if(t){ document.documentElement.setAttribute("data-theme", t); }
+    else{ document.documentElement.removeAttribute("data-theme"); }
+    themeBtn.textContent = t === "light" ? "☀" : (t === "dark" ? "☾" : "◐");
+  }
+  try{
+    const savedTheme = localStorage.getItem("doomsday-theme");
+    if(savedTheme) applyTheme(savedTheme);
+  }catch(e){}
+  themeBtn.addEventListener("click", ()=>{
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : (current === "light" ? null : "dark");
+    applyTheme(next);
+    try{ localStorage.setItem("doomsday-theme", next || ""); }catch(e){}
+  });
+
+  const chipsEl = document.getElementById("phase-chips");
+  const allChip = document.createElement("button");
+  allChip.className = "chip active";
+  allChip.textContent = "All phases";
+  allChip.dataset.phase = "all";
+  chipsEl.appendChild(allChip);
+  PHASES.forEach(ph=>{
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = ph.n === 7 ? "X-Men Universe" : "Phase " + ph.n;
+    b.dataset.phase = ph.n;
+    chipsEl.appendChild(b);
+  });
+  chipsEl.addEventListener("click", e=>{
+    const btn = e.target.closest(".chip");
+    if(!btn) return;
+    activePhase = btn.dataset.phase;
+    [...chipsEl.children].forEach(c=>c.classList.toggle("active", c===btn));
+    render();
+  });
+
+  document.getElementById("order-toggle").addEventListener("click", e=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    order = btn.dataset.order;
+    [...e.currentTarget.children].forEach(c=>c.classList.toggle("active", c===btn));
+    render();
+  });
+
+  const WATCHED_KEY = "doomsday-watched";
+  function loadWatched(){
+    try{
+      const raw = localStorage.getItem(WATCHED_KEY);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    }catch(e){ return new Set(); }
+  }
+  function saveWatched(){
+    try{ localStorage.setItem(WATCHED_KEY, JSON.stringify([...watched])); }catch(e){}
+  }
+  const watched = loadWatched();
+
+  function updateProgress(){
+    const core = MOVIES.filter(m => m.p !== 7);
+    const total = core.length;
+    const done = core.filter(m => watched.has(m.i)).length;
+    const textEl = document.getElementById("progress-text");
+    const timeEl = document.getElementById("progress-time");
+    const fillEl = document.getElementById("progress-fill");
+    if(textEl) textEl.innerHTML = `<strong>${done}</strong> of ${total} watched`;
+    if(fillEl) fillEl.style.width = (total ? (done/total)*100 : 0) + "%";
+    if(timeEl){
+      const minsLeft = core.filter(m => !watched.has(m.i)).reduce((s,m)=> s + (m.rt||0), 0);
+      const h = Math.floor(minsLeft/60), mm = minsLeft%60;
+      timeEl.textContent = minsLeft > 0 ? `~${h}h ${mm}m left` : "All caught up!";
+    }
+  }
+
+  document.getElementById("share-btn").addEventListener("click", async ()=>{
+    const coreTotal = MOVIES.filter(m=>m.p!==7).length;
+    const coreDone = MOVIES.filter(m=>m.p!==7 && watched.has(m.i)).length;
+    const text = `I've watched ${coreDone} of ${coreTotal} MCU titles on the Road to Doomsday! 🛡️ Counting down to Avengers: Doomsday.`;
+    const btn = document.getElementById("share-btn");
+    try{
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "Copied!";
+    }catch(e){
+      btn.textContent = "Copy failed";
+    }
+    setTimeout(()=> btn.textContent = "Share progress", 1800);
+  });
+
+  function showMilestone(){
+    const slot = document.getElementById("milestone-slot");
+    slot.innerHTML = `
+      <div class="milestone" id="milestone-overlay">
+        <div class="milestone-card">
+          <div class="icon">☠️</div>
+          <h2>You're ready for Doomsday.</h2>
+          <p>Every MCU film, watched. The Multiverse Saga ends where it began — with you.</p>
+          <button class="milestone-close" id="milestone-close">Let's go</button>
+        </div>
+      </div>`;
+    document.getElementById("milestone-close").addEventListener("click", ()=>{ slot.innerHTML = ""; });
+  }
+
+  function spawnBurst(x, y, emoji, color){
+    const wrap = document.createElement("div");
+    wrap.className = "burst";
+    wrap.style.left = x + "px";
+    wrap.style.top = y + "px";
+    const e = document.createElement("span");
+    e.className = "burst-emoji";
+    e.textContent = emoji;
+    wrap.appendChild(e);
+    for(let n=0; n<2; n++){
+      const ring = document.createElement("span");
+      ring.className = "burst-ring";
+      ring.style.setProperty("--ring-color", color);
+      ring.style.animationDelay = (n * 0.12) + "s";
+      wrap.appendChild(ring);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(()=> wrap.remove(), 1000);
+  }
+
+  document.getElementById("timeline").addEventListener("click", e=>{
+    const titleEl = e.target.closest(".title");
+    if(!titleEl) return;
+    const row = titleEl.closest(".entry");
+    const id = Number(row.dataset.id);
+    const nowWatched = !watched.has(id);
+    const rect = titleEl.getBoundingClientRect();
+    if(nowWatched){ watched.add(id); } else { watched.delete(id); }
+    saveWatched();
+    render();
+    if(nowWatched){
+      const movie = MOVIES.find(m => m.i === id);
+      const [c1] = PHASE_COLORS[movie.p] || PHASE_COLORS[1];
+      spawnBurst(rect.left + 10, rect.top + rect.height/2, movie.ic || "✨", c1);
+      if(MOVIES.filter(m=>m.p!==7).every(m=>watched.has(m.i))) showMilestone();
+    }
+  });
+
+  document.getElementById("progress-reset").addEventListener("click", ()=>{
+    watched.clear();
+    saveWatched();
+    render();
+  });
+
+  // X-Men Universe entries sit at the top of the merged chronological list
+  function chronoSort(a, b){
+    return ((a.p === 7 ? 0 : 1) - (b.p === 7 ? 0 : 1)) || (a.i - b.i);
+  }
+  const chronoRank = new Map(MOVIES.slice().sort(chronoSort).map((m, idx) => [m.i, idx + 1]));
+
+  function render(){
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = "";
+
+    let list = MOVIES.slice();
+    if(activePhase !== "all"){
+      list = list.filter(m => m.p === Number(activePhase));
+    }
+    if(essentialOnly){
+      list = list.filter(m => !m.sk);
+    }
+    if(searchTerm){
+      list = list.filter(m => m.t.toLowerCase().includes(searchTerm));
+    }
+
+    if(order === "release"){
+      list.sort((a,b)=> a.ry - b.ry || a.i - b.i);
+    } else {
+      list.sort(chronoSort);
+    }
+
+    const nextUnwatched = MOVIES.slice().filter(m => m.p !== 7).sort((a,b)=>a.i-b.i).find(m => !watched.has(m.i));
+
+    let lastPhase = null;
+    list.forEach(m=>{
+      if(order === "chrono" && m.p !== lastPhase){
+        const ph = PHASES.find(p=>p.n===m.p);
+        const head = document.createElement("div");
+        head.className = "phase-head";
+        const accent = PHASE_ACCENT[ph.n] || "var(--doom)";
+        head.innerHTML = `<span class="phase-num" style="color:${accent};">${ph.n === 7 ? "X" : String(ph.n).padStart(2,"0")}</span>
+                           <span class="phase-title" style="color:${accent};">${ph.title}</span>
+                           <span class="phase-span">${m.span || ""}</span>`;
+        timeline.appendChild(head);
+        lastPhase = m.p;
+      }
+
+      const isWatched = watched.has(m.i);
+      const isUpNext = nextUnwatched && m.i === nextUnwatched.i;
+      const [c1, c2] = PHASE_COLORS[m.p] || PHASE_COLORS[1];
+      const imdbClass = m.imdb == null ? "tba" : (m.imdb >= 7 ? "high" : (m.imdb >= 5.5 ? "mid" : "low"));
+      const imdbLabel = m.imdb == null ? "TBA" : m.imdb.toFixed(1);
+      const row = document.createElement("div");
+      row.className = "entry" + (m.finale ? " finale" : "") + (isWatched ? " watched" : "") + (isUpNext ? " up-next" : "");
+      row.dataset.id = m.i;
+      row.innerHTML = `
+        <span class="imdb-badge ${imdbClass}">★ ${imdbLabel}</span>
+        <div class="poster">
+          <div class="poster-inner" style="background:linear-gradient(135deg, ${c1}, ${c2});"><span>${initialsFor(m.t)}</span></div>
+        </div>
+        <div>
+          <div class="meta">
+            <span class="idx">${order === "release" ? m.ry : "#"+chronoRank.get(m.i)}</span>
+            <span class="year">${m.y}</span>
+          </div>
+          <div class="title"><span class="check">${isWatched ? "✓" : ""}</span>${m.t}${m.type === "series" ? '<span class="type-tag">Series</span>' : ""}${isUpNext ? '<span class="up-next-badge">▶ Watch next</span>' : ""}${m.sk ? '<span class="skip-tag">Skippable</span>' : ""}</div>
+          <div class="desc">${m.d}</div>
+          ${m.finale ? '<span class="tag">The finale of Phase 6</span>' : ""}
+        </div>`;
+      timeline.appendChild(row);
+      revealObserver.observe(row);
+    });
+
+    updateProgress();
+  }
+
+  const revealObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add("reveal");
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, {rootMargin:"0px 0px -8% 0px", threshold:0.1});
+
+  render();
+
+  // Scroll progress bar
+  const progressBar = document.getElementById("scroll-progress");
+  function updateScrollProgress(){
+    const h = document.documentElement;
+    const scrolled = h.scrollTop;
+    const height = h.scrollHeight - h.clientHeight;
+    progressBar.style.width = (height > 0 ? (scrolled / height) * 100 : 0) + "%";
+  }
+  document.addEventListener("scroll", updateScrollProgress, {passive:true});
+  updateScrollProgress();
+
+  // Countdown to Dec 18, 2026
+  const target = new Date("2026-12-18T00:00:00");
+  const prev = {days:null, hours:null, mins:null, secs:null};
+  function setTick(id, value, key){
+    const el = document.getElementById(id);
+    if(prev[key] !== null && prev[key] !== value){
+      el.classList.remove("tick");
+      void el.offsetWidth;
+      el.classList.add("tick");
+    }
+    prev[key] = value;
+    el.textContent = value;
+  }
+  function tick(){
+    const now = new Date();
+    let diff = target - now;
+    if(diff < 0) diff = 0;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    setTick("c-days", days, "days");
+    setTick("c-hours", String(hours).padStart(2,"0"), "hours");
+    setTick("c-mins", String(mins).padStart(2,"0"), "mins");
+    setTick("c-secs", String(secs).padStart(2,"0"), "secs");
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
