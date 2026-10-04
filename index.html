@@ -127,7 +127,7 @@
   a{ color:var(--doom); }
 
   .wrap{
-    max-width:920px;
+    max-width:1200px;
     margin:0 auto;
     padding:0 24px 80px;
   }
@@ -194,10 +194,21 @@
   /* ---------- Hero ---------- */
   .hero{
     position:relative;
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
     padding:92px 0 48px;
     border-bottom:1px solid var(--line);
     border-top:1px solid var(--line);
     overflow:hidden;
+    box-sizing:border-box;
+  }
+  .hero-inner{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 24px;
+    position:relative;
+    z-index:1;
   }
   .beams{
     position:absolute;
@@ -256,7 +267,6 @@
   @media (prefers-reduced-motion: reduce){
     .doomed-mark{ animation:none; opacity:0.14; text-shadow:0 0 30px var(--doom-glow); }
   }
-  .hero > *{ position:relative; z-index:1; }
   .throne-bg{
     background-image:url("assets/throne-bg.jpg");
     position:absolute;
@@ -876,19 +886,21 @@
     <div class="throne-bg"></div>
     <div class="beams"></div>
     <div class="doomed-mark">WE'RE DOOMED!</div>
-    <p class="kicker rise" style="animation-delay:.05s">Avengers Doomsday Countdown by CinePhobic</p>
-    <h1 class="rise" style="animation-delay:.15s">The road to<span>Doomsday.</span></h1>
-    <p class="dek rise" style="animation-delay:.3s">Every Marvel Cinematic Universe film and Disney+ series, arranged as the story actually happens — from a Brooklyn back alley in 1943 to a throne room in Latveria.</p>
+    <div class="hero-inner">
+      <p class="kicker rise" style="animation-delay:.05s">Avengers Doomsday Countdown by CinePhobic</p>
+      <h1 class="rise" style="animation-delay:.15s">The road to<span>Doomsday.</span></h1>
+      <p class="dek rise" style="animation-delay:.3s">Every Marvel Cinematic Universe film and Disney+ series, arranged as the story actually happens — from a Brooklyn back alley in 1943 to a throne room in Latveria.</p>
 
-    <div class="countdown-row rise" style="animation-delay:.45s">
-      <div class="countdown">
-        <span class="countdown-label">Countdown to release</span>
-        <div class="cbox"><div class="num" id="c-days">–</div><div class="lab">days</div></div>
-        <div class="cbox"><div class="num" id="c-hours">–</div><div class="lab">hours</div></div>
-        <div class="cbox"><div class="num" id="c-mins">–</div><div class="lab">mins</div></div>
-        <div class="cbox"><div class="num" id="c-secs">–</div><div class="lab">secs</div></div>
+      <div class="countdown-row rise" style="animation-delay:.45s">
+        <div class="countdown">
+          <span class="countdown-label">Countdown to release</span>
+          <div class="cbox"><div class="num" id="c-days">–</div><div class="lab">days</div></div>
+          <div class="cbox"><div class="num" id="c-hours">–</div><div class="lab">hours</div></div>
+          <div class="cbox"><div class="num" id="c-mins">–</div><div class="lab">mins</div></div>
+          <div class="cbox"><div class="num" id="c-secs">–</div><div class="lab">secs</div></div>
+        </div>
+        <div class="target-date">until <strong>Avengers: Doomsday</strong> — Dec 18, 2026</div>
       </div>
-      <div class="target-date">until <strong>Avengers: Doomsday</strong> — Dec 18, 2026</div>
     </div>
   </div>
 
