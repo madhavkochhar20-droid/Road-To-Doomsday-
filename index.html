@@ -1108,6 +1108,29 @@
   .up-next .poster::before, .up-next .poster-inner::after,
   .finale .poster::before, .finale .poster-inner::after{ animation-play-state:running; }
   html.hero-off .hero, html.hero-off .hero *{ animation-play-state:paused !important; }
+
+  /* ---------- Where to watch ---------- */
+  .trow{ display:flex; flex-wrap:wrap; align-items:center; gap:0 10px; }
+  .wtw{ display:inline-flex; align-items:center; gap:5px; margin:2px 0 6px; padding:2px 10px; font:600 11.5px var(--font-body); color:var(--muted); background:none; border:1px solid var(--line); border-radius:999px; cursor:pointer; white-space:nowrap; transition:border-color .2s ease, color .2s ease; }
+  .wtw:hover, .wtw:focus-visible{ border-color:var(--doom); color:var(--doom); outline:none; }
+  .wtw .short{ display:none; }
+  @media (max-width:560px){ .wtw .long{ display:none; } .wtw .short{ display:inline; } }
+  .wm{ position:fixed; inset:0; z-index:1350; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.65); }
+  .wm-card{ position:relative; width:min(440px,100%); max-height:86vh; overflow:auto; padding:22px; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .wm-card h3{ margin:0 28px 2px 0; font-family:var(--font-display); font-weight:700; font-size:26px; line-height:1.1; }
+  .wm-x{ position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; }
+  .wm-x:hover{ color:var(--ink); }
+  .wm-where{ display:flex; align-items:center; gap:8px; margin:12px 0 4px; font-size:13px; color:var(--muted); }
+  .wm-cc{ font:500 13px var(--font-body); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:5px 8px; max-width:210px; }
+  .wm-cc:focus{ border-color:var(--doom); outline:none; }
+  .wm-lab{ margin:14px 0 6px; font-size:12px; font-weight:600; color:var(--muted); }
+  .wm-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .prov{ display:inline-flex; align-items:center; gap:7px; padding:4px 10px 4px 4px; font-size:13px; color:var(--ink); border:1px solid var(--line); border-radius:10px; }
+  .prov img, .prov i{ width:28px; height:28px; border-radius:7px; display:block; background:var(--line); }
+  .wm-note{ margin:14px 0 0; font-size:14px; color:var(--muted); }
+  .wm-link{ display:inline-block; margin-top:18px; padding:8px 16px; font:600 13px var(--font-body); color:var(--paper); background:var(--doom); border-radius:999px; text-decoration:none; }
+  .wm-link:hover, .wm-link:focus-visible{ filter:brightness(1.1); outline:none; }
+  .wm-foot{ margin:14px 0 0; font-size:11px; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -1187,14 +1210,16 @@
 
   <div id="milestone-slot"></div>
   <div id="gate-slot"></div>
+  <div id="wtw-slot"></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <footer>
-    Placement for time-jumping stories — <em>Avengers: Endgame</em>, <em>Eternals</em>, the No Way Home multiverse, <em>Fantastic Four: First Steps</em>' retro-futuristic Earth, and where the Disney+ series slot in around them — follows the most common fan reading, not an official studio timeline. Animated anthology titles like <em>What If…?</em> are left out since they're non-canon. The <strong>X-Men Universe</strong> filter covers the original Fox X-Men films (Earth-10005) — a separate continuity from the main MCU timeline above, included as a bonus since <em>Deadpool &amp; Wolverine</em> bridges the two. Release dates for 2026 titles reflect the latest public schedule and may still shift.
+    Placement for time-jumping stories — <em>Avengers: Endgame</em>, <em>Eternals</em>, the No Way Home multiverse, <em>Fantastic Four: First Steps</em>' retro-futuristic Earth, and where the Disney+ series slot in around them — follows the most common fan reading, not an official studio timeline. Animated anthology titles like <em>What If…?</em> are left out since they're non-canon. The <strong>X-Men Universe</strong> filter covers the original Fox X-Men films (Earth-10005) — a separate continuity from the main MCU timeline above, included as a bonus since <em>Deadpool &amp; Wolverine</em> bridges the two. Release dates for 2026 titles reflect the latest public schedule and may still shift. Streaming availability comes from JustWatch via TMDB; this product uses the TMDB API but is not endorsed or certified by TMDB.
   </footer>
 
 </div>
 
+<script src="tmdb-config.js"></script>
 <script>
     const MOVIES = [
     {p:1, ph:"Origins", span:"1943 – 2013", i:1, y:"1943", ry:2011, t:"Captain America: The First Avenger", d:"A frail Brooklyn kid takes an experimental serum and disappears into Arctic ice fighting Hydra.", ic:"🛡️", rt:124, sk:false, imdb:6.9},
@@ -1678,7 +1703,7 @@
             <span class="idx">${order === "release" ? m.ry : "#"+chronoRank.get(m.i)}</span>
             <span class="year">${m.y}</span>
           </div>
-          <div class="title"><span class="check">${isWatched ? "✓" : ""}</span>${m.t}${m.type === "series" ? '<span class="type-tag">Series</span>' : ""}${isUpNext ? '<span class="up-next-badge">▶ Watch next</span>' : ""}${m.sk ? '<span class="skip-tag">Skippable</span>' : ""}</div>
+          <div class="trow"><div class="title"><span class="check">${isWatched ? "✓" : ""}</span>${m.t}${m.type === "series" ? '<span class="type-tag">Series</span>' : ""}${isUpNext ? '<span class="up-next-badge">▶ Watch next</span>' : ""}${m.sk ? '<span class="skip-tag">Skippable</span>' : ""}</div><button class="wtw" type="button" data-id="${m.i}" aria-label="Where to watch ${esc(m.t)}"><span class="long">▶ Where to watch</span><span class="short">▶ Watch</span></button></div>
           <div class="desc">${m.d}</div>
           ${m.finale ? '<span class="tag">The finale of Phase 6</span>' : ""}
         </div>`;
@@ -1690,6 +1715,134 @@
   }
 
   render();
+
+  // ---------- Where to watch (country auto-detected, availability from TMDB / JustWatch) ----------
+  const WTW_COUNTRIES = ["US","GB","IN","CA","AU","NZ","IE","DE","FR","ES","IT","NL","SE","NO","DK","FI","PL","PT","CH","AT","BE","BR","MX","AR","CL","CO","JP","KR","SG","MY","ID","PH","TH","HK","TW","AE","SA","TR","ZA","EG","NG","PK","BD","LK","NP"];
+  const CC_KEY = "doomsday-country", WCACHE_KEY = "doomsday-wtw-cache", WTTL = 24 * 3600 * 1000;
+  const TMDB_API = "https://api.themoviedb.org/3", TMDB_IMG = "https://image.tmdb.org/t/p/w92";
+  const wtwSlot = document.getElementById("wtw-slot");
+  let wtwCountry = null, wtwTok = 0, wtwItem = null;
+
+  function regionName(cc){ try{ return new Intl.DisplayNames(["en"], {type:"region"}).of(cc) || cc; }catch(e){ return cc; } }
+  function localeCountry(){
+    try{
+      for(const l of (navigator.languages || [navigator.language || ""])){
+        const m = /-([A-Za-z]{2})$/.exec(l); if(m) return m[1].toUpperCase();
+      }
+    }catch(e){}
+    return "US";
+  }
+  // Saved choice -> IP-based country -> browser language
+  async function detectCountry(){
+    if(wtwCountry) return wtwCountry;
+    try{ const sv = localStorage.getItem(CC_KEY); if(sv){ wtwCountry = sv; return sv; } }catch(e){}
+    try{
+      const ctl = new AbortController(), t = setTimeout(()=> ctl.abort(), 2500);
+      const j = await (await fetch("https://get.geojs.io/v1/ip/country.json", {signal:ctl.signal})).json();
+      clearTimeout(t);
+      if(j && /^[A-Z]{2}$/.test(j.country)){ wtwCountry = j.country; return wtwCountry; }
+    }catch(e){}
+    wtwCountry = localeCountry();
+    return wtwCountry;
+  }
+
+  const wcacheGet = () => { try{ return JSON.parse(localStorage.getItem(WCACHE_KEY) || "{}"); }catch(e){ return {}; } };
+  async function tj(url){ const r = await fetch(url); if(!r.ok) throw new Error("tmdb " + r.status); return r.json(); }
+  async function tmdbProviders(m, cc){
+    const key = window.TMDB_KEY, c = wcacheGet(), ck = m.i + ":" + cc, hit = c[ck];
+    if(hit && Date.now() - hit.t < WTTL) return hit.d;
+    const kind = m.type === "series" ? "tv" : "movie";
+    let id = (c["id" + m.i] || {}).id;
+    if(!id){
+      const search = withYear => TMDB_API + "/search/" + kind + "?api_key=" + key + "&query=" + encodeURIComponent(m.t)
+        + (withYear ? "&" + (kind === "tv" ? "first_air_date_year" : "year") + "=" + m.ry : "");
+      let res = (await tj(search(true))).results || [];
+      if(!res.length) res = (await tj(search(false))).results || [];
+      if(!res.length) return {nf:true};
+      id = res[0].id; c["id" + m.i] = {id};
+    }
+    const data = await tj(TMDB_API + "/" + kind + "/" + id + "/watch/providers?api_key=" + key);
+    const r = (data.results || {})[cc] || {};
+    const pick = arr => { const seen = new Set(); return (arr || []).filter(p => !seen.has(p.provider_name) && seen.add(p.provider_name)).map(p => ({n:p.provider_name, l:p.logo_path})); };
+    const d = {stream:pick(r.flatrate), free:pick([...(r.free || []), ...(r.ads || [])]), rent:pick(r.rent), buy:pick(r.buy)};
+    c[ck] = {t:Date.now(), d};
+    try{ localStorage.setItem(WCACHE_KEY, JSON.stringify(c)); }catch(e){}
+    return d;
+  }
+
+  // Built-in hint used when there is no TMDB key, or TMDB can't be reached (it is blocked on some Indian ISPs).
+  const DISNEY_PLUS = new Set(["US","CA","GB","IE","AU","NZ","DE","FR","ES","IT","NL","SE","NO","DK","FI","PT","CH","AT","BE","BR","MX","JP","KR"]);
+  const SONY_IDS = new Set([18, 22, 33, 50]);   // Spider-Man films: licensed per country, so no blanket claim
+  function hintHTML(m, cc){
+    const place = esc(regionName(cc));
+    if(SONY_IDS.has(m.i)) return `<p class="wm-note">Spider-Man films are licensed separately in each country, so the service changes by region. Check the current list for ${place}.</p>`;
+    if(m.p === 6) return `<p class="wm-note">Newer releases can take a while to reach streaming. Check the current list for ${place}.</p>`;
+    if(cc === "IN") return `<p class="wm-note">In India this usually streams on <strong>JioHotstar</strong> (formerly Disney+ Hotstar).</p><p class="wm-foot">Streaming rights change, so confirm with the button below.</p>`;
+    if(DISNEY_PLUS.has(cc)) return `<p class="wm-note">In ${place} this usually streams on <strong>Disney+</strong>.</p><p class="wm-foot">Streaming rights change, so confirm with the button below.</p>`;
+    return `<p class="wm-note">See which services stream this in ${place}.</p>`;
+  }
+  const jwUrl = (cc, t) => "https://www.justwatch.com/" + (cc === "GB" ? "uk" : cc.toLowerCase()) + "/search?q=" + encodeURIComponent(t);
+  const provHTML = p => `<span class="prov">${p.l ? `<img src="${TMDB_IMG}${esc(p.l)}" alt="" loading="lazy">` : "<i></i>"}${esc(p.n)}</span>`;
+  function grp(label, arr){ return arr && arr.length ? `<div class="wm-lab">${label}</div><div class="wm-chips">${arr.map(provHTML).join("")}</div>` : ""; }
+
+  function drawWtw(m, cc, st){
+    const list = WTW_COUNTRIES.includes(cc) || !cc ? WTW_COUNTRIES : [cc, ...WTW_COUNTRIES];
+    let body;
+    if(m.imdb == null){
+      body = `<p class="wm-note">${m.finale ? "Not out yet. It reaches cinemas on " + target.toLocaleDateString("en-US", {month:"short", day:"numeric", year:"numeric"}) + "." : "This one isn't released yet."}</p>`;
+    } else if(!cc || (st && st.loading)){
+      body = `<p class="wm-note">${cc ? "Checking streaming services…" : "Finding your location…"}</p>`;
+    } else if(st && st.err){
+      body = hintHTML(m, cc);
+    } else if(st && st.nokey){
+      body = hintHTML(m, cc);
+    } else if(st && st.d && st.d.nf){
+      body = hintHTML(m, cc);
+    } else if(st && st.d){
+      const d = st.d;
+      body = grp("Stream", d.stream) + grp("Free with ads", d.free) + grp("Rent", d.rent) + grp("Buy", d.buy);
+      if(!body) body = `<p class="wm-note">Not on any service in ${esc(regionName(cc))} right now.</p>`;
+    } else body = "";
+    const link = cc && m.imdb != null ? `<a class="wm-link" href="${jwUrl(cc, m.t)}" target="_blank" rel="noopener">Open on JustWatch</a>` : "";
+    const foot = window.TMDB_KEY && st && st.d ? '<p class="wm-foot">Availability data from JustWatch, via TMDB.</p>' : "";
+    wtwSlot.innerHTML = `<div class="wm" id="wm"><div class="wm-card" role="dialog" aria-modal="true" aria-label="Where to watch ${esc(m.t)}">
+      <button class="wm-x" id="wm-x" aria-label="Close">✕</button>
+      <h3>${esc(m.t)}</h3>
+      ${m.imdb != null ? `<label class="wm-where">Where to watch in
+        <select class="wm-cc" id="wm-cc" ${cc ? "" : "disabled"}>${cc ? list.map(c => `<option value="${c}"${c === cc ? " selected" : ""}>${esc(regionName(c))}</option>`).join("") : "<option>…</option>"}</select></label>` : ""}
+      ${body}${link}${foot}</div></div>`;
+  }
+  async function loadWtw(m, cc, tok){
+    if(m.imdb == null){ drawWtw(m, cc, {}); return; }
+    if(!window.TMDB_KEY){ drawWtw(m, cc, {nokey:true}); return; }
+    drawWtw(m, cc, {loading:true});
+    try{ const d = await tmdbProviders(m, cc); if(tok === wtwTok) drawWtw(m, cc, {d}); }
+    catch(e){ console.error(e); if(tok === wtwTok) drawWtw(m, cc, {err:true}); }
+  }
+  async function openWtw(id){
+    const m = MOVIES.find(x => x.i === id); if(!m) return;
+    wtwItem = m; const tok = ++wtwTok;
+    if(!wtwCountry && m.imdb != null) drawWtw(m, null, {});
+    const cc = m.imdb == null ? (wtwCountry || "US") : await detectCountry();
+    if(tok !== wtwTok) return;
+    loadWtw(m, cc, tok);
+  }
+  function closeWtw(){ wtwSlot.innerHTML = ""; wtwTok++; }
+  document.getElementById("timeline").addEventListener("click", e=>{
+    const b = e.target.closest(".wtw");
+    if(b) openWtw(Number(b.dataset.id));
+  });
+  wtwSlot.addEventListener("click", e=>{
+    if(e.target.id === "wm" || e.target.closest("#wm-x")) closeWtw();
+  });
+  wtwSlot.addEventListener("change", e=>{
+    if(e.target.id !== "wm-cc" || !wtwItem) return;
+    wtwCountry = e.target.value;
+    try{ localStorage.setItem(CC_KEY, wtwCountry); }catch(err){}
+    loadWtw(wtwItem, wtwCountry, ++wtwTok);
+    const sel = document.getElementById("wm-cc"); if(sel) sel.focus();
+  });
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape" && wtwSlot.firstChild) closeWtw(); });
 
   // Scroll progress bar (transform only, one update per frame) + hover freeze while scrolling
   const progressBar = document.getElementById("scroll-progress");
