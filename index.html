@@ -358,8 +358,9 @@
   /* ---------- Progress tracker ---------- */
   .progress-summary{
     display:flex;
+    flex-wrap:wrap;
     align-items:center;
-    gap:14px;
+    gap:8px 14px;
     padding:16px 0 0;
   }
   .progress-summary .ptext{
@@ -369,7 +370,8 @@
   }
   .progress-summary .ptext strong{ color:var(--doom); }
   .progress-track{
-    flex:1;
+    flex:1 1 140px;
+    min-width:140px;
     height:6px;
     border-radius:999px;
     background:var(--line);
@@ -512,6 +514,8 @@
     background:var(--ink);
     color:var(--paper);
   }
+  .toggle button small{ font-size:11px; font-weight:600; opacity:.7; margin-left:5px; }
+  .chip[hidden]{ display:none; }
   .chips{
     display:flex;
     flex-wrap:wrap;
@@ -1240,11 +1244,16 @@
     </div>
     <input type="text" class="search-input" id="search-input" placeholder="Search a movie…">
     <label class="essential-toggle"><input type="checkbox" id="essential-only">Essential only</label>
+    <div class="toggle" id="mode-toggle" role="group" aria-label="Which titles to show and count">
+      <button type="button" data-mode="core" class="active" title="Main MCU films and Disney+ series only">MCU only<small id="mode-n-core"></small></button>
+      <button type="button" data-mode="all" title="Complete order, including the X-Men Universe films">Complete + X-Men<small id="mode-n-all"></small></button>
+    </div>
     <div class="chips" id="phase-chips"></div>
   </div>
 
   <div class="progress-summary">
     <span class="ptext" id="progress-text">0 of 51 watched</span>
+    <span class="ptext" id="progress-split"></span>
     <span class="ptext" id="progress-time">~0h left</span>
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
     <button class="share-btn" id="share-btn">Share progress</button>
@@ -1372,6 +1381,10 @@
   let activePhase = "all";
   let searchTerm = "";
   let essentialOnly = false;
+  // "core" = main MCU only (51); "all" = complete order including the X-Men Universe (64)
+  let mode = "core";
+  try{ if(localStorage.getItem("doomsday-mode") === "all") mode = "all"; }catch(e){}
+  const inMode = m => mode === "all" || m.p !== 7;
 
   document.getElementById("search-input").addEventListener("input", e=>{
     searchTerm = e.target.value.trim().toLowerCase();
@@ -1420,6 +1433,29 @@
     [...chipsEl.children].forEach(c=>c.classList.toggle("active", c===btn));
     render();
   });
+
+  // With / without X-Men: decides which titles are listed and counted
+  const modeEl = document.getElementById("mode-toggle");
+  document.getElementById("mode-n-core").textContent = MOVIES.filter(m => m.p !== 7).length;
+  document.getElementById("mode-n-all").textContent = MOVIES.length;
+  function syncModeUI(){
+    [...modeEl.children].forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    const xChip = chipsEl.querySelector('[data-phase="7"]');
+    if(xChip) xChip.hidden = mode !== "all";
+    if(mode !== "all" && activePhase === "7"){
+      activePhase = "all";
+      [...chipsEl.children].forEach(c => c.classList.toggle("active", c.dataset.phase === "all"));
+    }
+  }
+  modeEl.addEventListener("click", e=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    mode = btn.dataset.mode === "all" ? "all" : "core";
+    try{ localStorage.setItem("doomsday-mode", mode); }catch(err){}
+    syncModeUI();
+    render();
+  });
+  syncModeUI();
 
   document.getElementById("order-toggle").addEventListener("click", e=>{
     const btn = e.target.closest("button");
@@ -1598,19 +1634,30 @@
   (window.introDone || Promise.resolve()).then(()=>{ if(store.profiles.length > 1) drawGate(); });
 
 
+  // Counts for the current mode, split into movies and series
+  function progressStats(){
+    const list = MOVIES.filter(inMode);
+    const tally = wantSeries => {
+      const l = list.filter(m => (m.type === "series") === wantSeries);
+      return {done:l.filter(m => watched.has(m.i)).length, total:l.length};
+    };
+    const movies = tally(false), series = tally(true);
+    const minsLeft = list.filter(m => !watched.has(m.i)).reduce((sum, m) => sum + (m.rt || 0), 0);
+    return {list, total:list.length, done:movies.done + series.done, movies, series, minsLeft};
+  }
+
   function updateProgress(){
-    const core = MOVIES.filter(m => m.p !== 7);
-    const total = core.length;
-    const done = core.filter(m => watched.has(m.i)).length;
+    const st = progressStats();
     const textEl = document.getElementById("progress-text");
+    const splitEl = document.getElementById("progress-split");
     const timeEl = document.getElementById("progress-time");
     const fillEl = document.getElementById("progress-fill");
-    if(textEl) textEl.innerHTML = `<strong>${done}</strong> of ${total} watched`;
-    if(fillEl) fillEl.style.width = (total ? (done/total)*100 : 0) + "%";
+    if(textEl) textEl.innerHTML = `<strong>${st.done}</strong> of ${st.total} watched`;
+    if(splitEl) splitEl.innerHTML = `(<strong>${st.movies.done}</strong>/${st.movies.total} movies &middot; <strong>${st.series.done}</strong>/${st.series.total} series)`;
+    if(fillEl) fillEl.style.width = (st.total ? (st.done/st.total)*100 : 0) + "%";
     if(timeEl){
-      const minsLeft = core.filter(m => !watched.has(m.i)).reduce((s,m)=> s + (m.rt||0), 0);
-      const h = Math.floor(minsLeft/60), mm = minsLeft%60;
-      timeEl.textContent = minsLeft > 0 ? `~${h}h ${mm}m left` : "All caught up!";
+      const h = Math.floor(st.minsLeft/60), mm = st.minsLeft%60;
+      timeEl.textContent = st.minsLeft > 0 ? `~${h}h ${mm}m left` : "All caught up!";
     }
   }
 
@@ -1619,18 +1666,17 @@
   const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue("--" + n).trim();
 
   function shareStats(){
-    const core = MOVIES.filter(m => m.p !== 7);
-    const done = core.filter(m => watched.has(m.i)).length;
-    const minsLeft = core.filter(m => !watched.has(m.i)).reduce((s, m) => s + (m.rt || 0), 0);
-    const phases = PHASES.filter(ph => ph.n !== 7).map(ph => {
-      const list = core.filter(m => m.p === ph.n);
+    const ps = progressStats();
+    const phases = PHASES.filter(ph => mode === "all" || ph.n !== 7).map(ph => {
+      const list = ps.list.filter(m => m.p === ph.n);
       return {n:ph.n, title:ph.title, total:list.length, done:list.filter(m => watched.has(m.i)).length};
     }).filter(ph => ph.total);
     const days = Math.max(0, Math.ceil((target - new Date()) / 864e5));
-    return {total:core.length, done, minsLeft, phases, days};
+    return {...ps, phases, days, withX: mode === "all"};
   }
   function shareText(st){
-    return `I've watched ${st.done} of ${st.total} MCU titles on the Road to Doomsday! 🛡️ Counting down to Avengers: Doomsday. — CinePhobic`;
+    const what = st.withX ? "MCU + X-Men Universe titles" : "MCU titles";
+    return `I've watched ${st.done} of ${st.total} ${what} (${st.movies.done}/${st.movies.total} movies, ${st.series.done}/${st.series.total} series) on the Road to Doomsday! 🛡️ Counting down to Avengers: Doomsday. — CinePhobic`;
   }
   function loadImg(src){
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
@@ -1702,20 +1748,22 @@
     x.fillText(who, cx, 494);
 
     // progress ring
-    const rx = cx, ry = 685, R = 150, lw = 28, pct = st.total ? st.done / st.total : 0;
+    const rx = cx, ry = 675, R = 145, lw = 28, pct = st.total ? st.done / st.total : 0;
     x.lineCap = "round"; x.lineWidth = lw;
     x.strokeStyle = line; x.beginPath(); x.arc(rx, ry, R, 0, Math.PI * 2); x.stroke();
     if(pct > 0){
       x.strokeStyle = doom; x.shadowColor = glow; x.shadowBlur = 22;
       x.beginPath(); x.arc(rx, ry, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); x.stroke(); x.shadowBlur = 0;
     }
-    x.fillStyle = ink; x.font = `800 118px ${DISP}`; x.fillText(Math.round(pct * 100) + "%", rx, ry + 28);
-    x.fillStyle = muted; x.font = `600 28px ${BODY}`; x.fillText("OF THE SAGA", rx, ry + 76);
+    x.fillStyle = ink; x.font = `800 106px ${DISP}`; x.fillText(Math.round(pct * 100) + "%", rx, ry + 26);
+    x.fillStyle = muted; x.font = `600 28px ${BODY}`; x.fillText("OF THE SAGA", rx, ry + 70);
     x.fillStyle = ink; x.font = `600 38px ${BODY}`;
-    x.fillText(`${st.done} of ${st.total} titles watched`, cx, 918);
+    x.fillText(`${st.done} of ${st.total} titles watched`, cx, 897);
+    x.fillStyle = muted; x.font = `600 27px ${BODY}`;
+    x.fillText(`${st.movies.done}/${st.movies.total} movies  \u00B7  ${st.series.done}/${st.series.total} series` + (st.withX ? "  \u00B7  incl. X-Men" : ""), cx, 935);
 
     // phase bars
-    const bx = 120, bw2 = W - 240, rowH = 40, top = 960;
+    const bx = 120, bw2 = W - 240, rowH = 37, top = 975;
     st.phases.forEach((ph, n) => {
       const y = top + n * rowH, pa = PHASE_ACCENT[ph.n], col = (pa && !/var\(/.test(pa)) ? pa : doom;
       x.textAlign = "left"; x.fillStyle = muted; x.font = `600 22px ${BODY}`;
@@ -1893,13 +1941,15 @@
   function chronoSort(a, b){
     return ((a.p === 7 ? 0 : 1) - (b.p === 7 ? 0 : 1)) || (a.i - b.i);
   }
-  const chronoRank = new Map(MOVIES.slice().sort(chronoSort).map((m, idx) => [m.i, idx + 1]));
+  // "#" numbers follow the current mode, so MCU-only starts at #1 and the complete order starts with the X-Men films
+  const rankMap = () => new Map(MOVIES.filter(inMode).sort(chronoSort).map((m, idx) => [m.i, idx + 1]));
 
   function render(){
     const timeline = document.getElementById("timeline");
     timeline.innerHTML = "";
 
-    let list = MOVIES.slice();
+    const chronoRank = rankMap();
+    let list = MOVIES.filter(inMode);
     if(activePhase !== "all"){
       list = list.filter(m => m.p === Number(activePhase));
     }
@@ -1916,7 +1966,7 @@
       list.sort(chronoSort);
     }
 
-    const nextUnwatched = MOVIES.slice().filter(m => m.p !== 7).sort((a,b)=>a.i-b.i).find(m => !watched.has(m.i));
+    const nextUnwatched = MOVIES.filter(inMode).sort(chronoSort).find(m => !watched.has(m.i));
 
     let lastPhase = null;
     list.forEach(m=>{
