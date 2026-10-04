@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Every MCU film and Disney+ series in chronological order, with a live countdown to Avengers: Doomsday and a personal watch tracker.">
 <meta name="theme-color" content="#08090B">
+<script>
+  // Intro gate: the overlay only exists while this flag is set; it is removed by the intro controller,
+  // or by this failsafe if anything goes wrong, so the site can never get stuck behind it.
+  (function(){
+    var root = document.documentElement;
+    root.classList.add("intro-on");
+    window.introDone = new Promise(function(res){ window.__introResolve = res; });
+    setTimeout(function(){ root.classList.remove("intro-on"); window.__introResolve(); }, 6000);
+  })();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Road to Doomsday — MCU Chronology">
 <meta property="og:description" content="Every MCU film and Disney+ series in order, a live countdown to Avengers: Doomsday, and a watch tracker.">
@@ -866,9 +876,234 @@
     .doomed-mark{ font-size:clamp(46px, 20vw, 90px); }
     .masthead{ padding:10px 0; }
   }
+
+  /* ---------- Google sign-in ---------- */
+  .auth-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--font-body);
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 13px 5px 9px;
+    cursor:pointer;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .auth-btn:hover{ border-color:var(--doom); }
+  .auth-btn:focus-visible, .signout-btn:focus-visible{ outline:2px solid var(--doom); outline-offset:2px; }
+  .auth-user{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:12.5px;
+    color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:3px 12px 3px 4px;
+    background:var(--surface);
+  }
+  .auth-user[hidden], .auth-btn[hidden]{ display:none; }
+  .avatar{
+    width:24px; height:24px;
+    border-radius:50%;
+    background:var(--doom);
+    color:var(--surface);
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .auth-name{ max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  .sync-state{ font-size:11px; color:var(--muted); white-space:nowrap; }
+  .sync-state.ok{ color:var(--doom); }
+  .signout-btn{
+    font-family:var(--font-body);
+    font-size:12px;
+    color:var(--muted);
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .signout-btn:hover{ color:var(--doom); }
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:24px;
+    transform:translate(-50%, 20px);
+    max-width:min(460px, 90vw);
+    background:var(--surface);
+    color:var(--ink);
+    border:1px solid var(--doom);
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:13.5px;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:1500;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+  @media (max-width:560px){
+    .auth-name, .sync-state{ display:none; }
+    .live-pill{ display:none; }
+  }
+
+  /* ---------- Intro splash ---------- */
+  /* Only compositor-friendly properties (opacity/transform) are animated, and the intro clock starts
+     (class .play) only after the page, fonts and first render are done, so it can't stall or skip. */
+  .rise{ animation-delay:var(--d, 0s); }
+  .intro{ display:none; }
+  html.intro-on .intro{
+    position:fixed;
+    inset:0;
+    z-index:2000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:#040605;
+    color:#EDEAE2;
+    overflow:hidden;
+    transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  }
+  html.intro-on .intro.out{ opacity:0; transform:scale(1.04); visibility:hidden; }
+  /* Freeze the site's own animations and the grain overlay while the intro plays, so they don't compete for the frame budget */
+  html.intro-on .wrap,
+  html.intro-on .wrap *,
+  html.intro-on .wrap *::before,
+  html.intro-on .wrap *::after{ animation-play-state:paused !important; }
+  html.intro-on body::after{ display:none; }
+
+  .intro-glow{
+    position:absolute;
+    left:50%; top:50%;
+    width:90vmax; height:90vmax;
+    margin:-45vmax 0 0 -45vmax;
+    background:radial-gradient(circle, rgba(76,255,110,.22) 0%, rgba(76,255,110,.06) 28%, transparent 55%);
+    opacity:0;
+    will-change:transform, opacity;
+  }
+  .intro-beams{
+    position:absolute;
+    left:50%; top:50%;
+    width:90vmax; height:90vmax;
+    margin:-45vmax 0 0 -45vmax;
+    background:
+      radial-gradient(circle, transparent 0%, #040605 62%),
+      conic-gradient(from 0deg,
+        transparent 0deg, rgba(76,255,110,.12) 6deg, transparent 18deg,
+        transparent 120deg, rgba(76,255,110,.09) 128deg, transparent 142deg,
+        transparent 240deg, rgba(76,255,110,.11) 248deg, transparent 262deg,
+        transparent 360deg);
+    opacity:0;
+    will-change:transform, opacity;
+  }
+  .intro-pre{
+    position:relative;
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(16px, 3.2vw, 26px);
+    letter-spacing:.5em;
+    padding-left:.5em;
+    color:#96988E;
+    opacity:0;
+  }
+  .intro-title{
+    position:relative;
+    margin:6px 0 0;
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(44px, 13vw, 180px);
+    line-height:.95;
+    letter-spacing:.02em;
+    color:#4CFF6E;
+    white-space:nowrap;
+    opacity:0;
+    text-shadow:0 0 22px rgba(76,255,110,.5);
+    will-change:transform, opacity;
+  }
+  .intro-line{
+    position:relative;
+    width:min(420px, 62vw);
+    height:2px;
+    margin:18px 0 14px;
+    background:linear-gradient(90deg, transparent, #4CFF6E, transparent);
+    box-shadow:0 0 14px #4CFF6E;
+    transform:scaleX(0);
+    will-change:transform;
+  }
+  .intro-date{
+    position:relative;
+    font-family:var(--font-body);
+    font-size:clamp(12px, 2.4vw, 15px);
+    letter-spacing:.12em;
+    color:#96988E;
+    opacity:0;
+  }
+  .intro-date strong{ color:#EDEAE2; font-weight:600; }
+
+  .intro.play .intro-glow{ animation:intro-glow 1.8s ease-out forwards; }
+  .intro.play .intro-beams{ animation:intro-fade .6s ease .15s forwards, rotate-slow 6s linear infinite; }
+  .intro.play .intro-pre{ animation:intro-fade .5s ease .1s forwards; }
+  .intro.play .intro-title{
+    animation:
+      intro-pop .9s cubic-bezier(.2,.8,.2,1) .2s forwards,
+      intro-flicker .35s steps(1,end) 1.1s 1;
+  }
+  .intro.play .intro-line{ animation:intro-line .7s cubic-bezier(.2,.8,.2,1) .6s forwards; }
+  .intro.play .intro-date{ animation:intro-fade .5s ease .95s forwards; }
+
+  @keyframes intro-glow{
+    0%{ opacity:0; transform:scale(.4); }
+    55%{ opacity:1; }
+    100%{ opacity:.85; transform:scale(1); }
+  }
+  @keyframes intro-pop{
+    from{ opacity:0; transform:scale(1.18); }
+    to{ opacity:1; transform:scale(1); }
+  }
+  @keyframes intro-flicker{
+    0%{ opacity:1; }
+    20%{ opacity:.25; }
+    40%{ opacity:1; }
+    60%{ opacity:.55; }
+    80%{ opacity:1; }
+  }
+  @keyframes intro-line{ to{ transform:scaleX(1); } }
+  @keyframes intro-fade{ to{ opacity:1; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .intro .intro-glow{ opacity:.6; }
+    .intro .intro-beams{ opacity:.5; }
+    .intro .intro-pre, .intro .intro-title, .intro .intro-date{ opacity:1; }
+    .intro .intro-line{ transform:none; }
+    .intro.play .intro-glow, .intro.play .intro-beams, .intro.play .intro-pre,
+    .intro.play .intro-title, .intro.play .intro-line, .intro.play .intro-date{ animation:none; }
+  }
 </style>
 </head>
 <body>
+
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro-glow"></div>
+  <div class="intro-beams"></div>
+  <div class="intro-pre">THE ROAD TO</div>
+  <div class="intro-title">DOOMSDAY</div>
+  <div class="intro-line"></div>
+  <div class="intro-date" id="intro-date">AVENGERS: DOOMSDAY &middot; DEC 18, 2026</div>
+</div>
 
 <div class="scroll-progress" id="scroll-progress"></div>
 
@@ -878,6 +1113,16 @@
     <div class="brand">CINE<em>PHOBIC</em></div>
     <div class="mast-right">
       <div class="live-pill"><span class="live-dot"></span>Tracking live</div>
+      <button class="auth-btn" id="auth-btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <span>Sign in</span>
+      </button>
+      <div class="auth-user" id="auth-user" hidden>
+        <span class="avatar" id="auth-avatar"></span>
+        <span class="auth-name" id="auth-name"></span>
+        <span class="sync-state" id="sync-state"></span>
+        <button class="signout-btn" id="signout-btn" type="button">Sign out</button>
+      </div>
       <button class="theme-btn" id="theme-btn" title="Toggle theme">◐</button>
     </div>
   </div>
@@ -887,11 +1132,11 @@
     <div class="beams"></div>
     <div class="doomed-mark">WE'RE DOOMED!</div>
     <div class="hero-inner">
-      <p class="kicker rise" style="animation-delay:.05s">Avengers Doomsday Countdown by CinePhobic</p>
-      <h1 class="rise" style="animation-delay:.15s">The road to<span>Doomsday.</span></h1>
-      <p class="dek rise" style="animation-delay:.3s">Every Marvel Cinematic Universe film and Disney+ series, arranged as the story actually happens — from a Brooklyn back alley in 1943 to a throne room in Latveria.</p>
+      <p class="kicker rise" style="--d:.05s">Avengers Doomsday Countdown by CinePhobic</p>
+      <h1 class="rise" style="--d:.15s">The road to<span>Doomsday.</span></h1>
+      <p class="dek rise" style="--d:.3s">Every Marvel Cinematic Universe film and Disney+ series, arranged as the story actually happens — from a Brooklyn back alley in 1943 to a throne room in Latveria.</p>
 
-      <div class="countdown-row rise" style="animation-delay:.45s">
+      <div class="countdown-row rise" style="--d:.45s">
         <div class="countdown">
           <span class="countdown-label">Countdown to release</span>
           <div class="cbox"><div class="num" id="c-days">–</div><div class="lab">days</div></div>
@@ -925,6 +1170,7 @@
   <div class="timeline" id="timeline"></div>
 
   <div id="milestone-slot"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <footer>
     Placement for time-jumping stories — <em>Avengers: Endgame</em>, <em>Eternals</em>, the No Way Home multiverse, <em>Fantastic Four: First Steps</em>' retro-futuristic Earth, and where the Disney+ series slot in around them — follows the most common fan reading, not an official studio timeline. Animated anthology titles like <em>What If…?</em> are left out since they're non-canon. The <strong>X-Men Universe</strong> filter covers the original Fox X-Men films (Earth-10005) — a separate continuity from the main MCU timeline above, included as a bonus since <em>Deadpool &amp; Wolverine</em> bridges the two. Release dates for 2026 titles reflect the latest public schedule and may still shift.
@@ -1104,6 +1350,7 @@
   }
   function saveWatched(){
     try{ localStorage.setItem(WATCHED_KEY, JSON.stringify([...watched])); }catch(e){}
+    if(typeof cloudPush === "function") cloudPush();   // no-op unless signed in
   }
   const watched = loadWatched();
 
@@ -1317,6 +1564,203 @@
   }
   tick();
   setInterval(tick, 1000);
+
+  // Intro splash controller.
+  // The intro clock only starts once the page has loaded, the display font is ready and the first
+  // frames are painted, so heavy page work can't make it stall and jump to the end.
+  (function(){
+    const root  = document.documentElement;
+    const intro = document.getElementById("intro");
+    let done = false;
+    function finish(){
+      if(done) return; done = true;
+      root.classList.remove("intro-on");
+      if(intro) intro.style.display = "none";
+      if(window.__introResolve) window.__introResolve();
+    }
+    if(!intro || !root.classList.contains("intro-on")){ finish(); return; }
+
+    try{
+      const days = Math.max(0, Math.floor((target - new Date()) / 86400000));
+      document.getElementById("intro-date").innerHTML = "<strong>" + days + " days</strong> to Avengers: Doomsday";
+    }catch(e){}
+
+    const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let started = false;
+    function start(){
+      if(started || done) return; started = true;
+      requestAnimationFrame(()=> requestAnimationFrame(()=>{
+        intro.classList.add("play");
+        setTimeout(()=> intro.classList.add("out"), reduce ? 700 : 1750);
+        setTimeout(finish, reduce ? 1150 : 2250);
+      }));
+    }
+
+    const pageLoaded = document.readyState === "complete"
+      ? Promise.resolve()
+      : new Promise(r => window.addEventListener("load", r, {once:true}));
+    const fontReady = (document.fonts && document.fonts.load)
+      ? document.fonts.load('800 80px "Big Shoulders Display"').catch(()=>{})
+      : Promise.resolve();
+    Promise.all([pageLoaded, fontReady]).then(start);
+    setTimeout(start, 1500);                 // never wait longer than this on slow networks
+    intro.addEventListener("click", finish); // tap to skip
+  })();
+</script>
+
+<script src="firebase-config.js"></script>
+<script>
+  // ---------- Google sign-in + cloud sync (Firebase Auth + Firestore) ----------
+  // Watch progress is saved per Google account at users/{uid} in Firestore,
+  // so it survives logout/login and follows the user across devices.
+  const authBtn   = document.getElementById("auth-btn");
+  const authUser  = document.getElementById("auth-user");
+  const syncEl    = document.getElementById("sync-state");
+  const toastEl   = document.getElementById("toast");
+  let fbAuth = null, fbDb = null, cloudUser = null, cloudUnsub = null, pushTimer = null, toastTimer = null;
+
+  const fbConfigured = !!(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && !/^PASTE|^YOUR/i.test(window.FIREBASE_CONFIG.apiKey));
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove("show"), 4200);
+  }
+  function setSync(state){
+    syncEl.className = "sync-state" + (state === "ok" ? " ok" : "");
+    syncEl.textContent = state === "ok" ? "Synced" : (state === "saving" ? "Saving…" : (state === "err" ? "Offline" : ""));
+  }
+  function loadScript(src){
+    return new Promise((res, rej)=>{
+      const el = document.createElement("script");
+      el.src = src; el.onload = res; el.onerror = ()=> rej(new Error("load failed: " + src));
+      document.head.appendChild(el);
+    });
+  }
+  async function ensureFirebase(){
+    if(fbAuth) return true;
+    if(!fbConfigured) return false;
+    if(!window.firebase){
+      const base = "https://www.gstatic.com/firebasejs/10.12.2/";
+      await loadScript(base + "firebase-app-compat.js");
+      await Promise.all([loadScript(base + "firebase-auth-compat.js"), loadScript(base + "firebase-firestore-compat.js")]);
+    }
+    if(!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    fbAuth.onAuthStateChanged(onUser);
+    return true;
+  }
+
+  function showUser(user){
+    const signedIn = !!user;
+    authBtn.hidden = signedIn;
+    authUser.hidden = !signedIn;
+    if(!signedIn) return;
+    const name = user.displayName || user.email || "You";
+    document.getElementById("auth-name").textContent = name.split(" ")[0];
+    const av = document.getElementById("auth-avatar");
+    av.textContent = "";
+    if(user.photoURL){
+      const img = document.createElement("img");
+      img.src = user.photoURL; img.alt = ""; img.referrerPolicy = "no-referrer";
+      img.onerror = ()=>{ av.textContent = name[0].toUpperCase(); };
+      av.appendChild(img);
+    } else { av.textContent = name[0].toUpperCase(); }
+  }
+
+  // Replace local progress with a given list of ids (used when cloud data arrives)
+  function applyWatched(ids){
+    watched.clear();
+    ids.forEach(i => watched.add(Number(i)));
+    try{ localStorage.setItem(WATCHED_KEY, JSON.stringify([...watched])); }catch(e){}
+    render();
+  }
+
+  function onUser(user){
+    cloudUser = user;
+    showUser(user);
+    if(cloudUnsub){ cloudUnsub(); cloudUnsub = null; }
+    if(!user){ setSync(""); return; }
+
+    const ref = fbDb.collection("users").doc(user.uid);
+    let first = true;
+    setSync("saving");
+    cloudUnsub = ref.onSnapshot(snap=>{
+      const remote = snap.exists ? (snap.data().watched || []) : [];
+      if(first){
+        // First load after sign-in: merge anything watched as a guest with the saved account data
+        first = false;
+        const merged = new Set([...remote.map(Number), ...watched]);
+        const changed = merged.size !== remote.length;
+        applyWatched([...merged]);
+        if(changed) cloudPush(true); else setSync("ok");
+      } else if(!snap.metadata.hasPendingWrites){
+        applyWatched(remote);      // change made on another device/tab
+        setSync("ok");
+      }
+    }, err=>{
+      console.error(err);
+      setSync("err");
+      toast("Couldn't reach your saved progress. Check your connection and Firestore rules.");
+    });
+  }
+
+  function cloudPush(now){
+    if(!cloudUser || !fbDb) return;
+    setSync("saving");
+    clearTimeout(pushTimer);
+    const run = ()=>{
+      fbDb.collection("users").doc(cloudUser.uid)
+        .set({ watched: [...watched].sort((a,b)=>a-b), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(()=> setSync("ok"))
+        .catch(err=>{ console.error(err); setSync("err"); });
+    };
+    if(now) run(); else pushTimer = setTimeout(run, 500);
+  }
+
+  authBtn.addEventListener("click", async ()=>{
+    if(!fbConfigured){
+      toast("Google sign-in isn't set up yet. Add your Firebase keys in firebase-config.js (see README).");
+      return;
+    }
+    try{
+      await ensureFirebase();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try{
+        await fbAuth.signInWithPopup(provider);
+      }catch(err){
+        if(err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")){
+          await fbAuth.signInWithRedirect(provider);
+        } else if(err && err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request"){
+          throw err;
+        }
+      }
+    }catch(err){
+      console.error(err);
+      toast(err && err.code === "auth/unauthorized-domain"
+        ? "This domain isn't authorised in Firebase yet. Add it under Authentication → Settings → Authorized domains."
+        : "Sign-in failed. Please try again.");
+    }
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async ()=>{
+    clearTimeout(pushTimer);
+    if(cloudUser) cloudPush(true);          // flush any pending change first
+    await new Promise(r => setTimeout(r, 400));
+    try{ await fbAuth.signOut(); }catch(e){ console.error(e); }
+    // Progress belongs to the account: clear it from this browser so the next person on a shared device starts fresh
+    watched.clear();
+    try{ localStorage.removeItem(WATCHED_KEY); }catch(e){}
+    render();
+    toast("Signed out. Your progress is saved to your Google account.");
+  });
+
+  // If the user was already signed in on a previous visit, restore the session quietly
+  if(fbConfigured){
+    (window.introDone || Promise.resolve()).then(()=> ensureFirebase()).catch(err => console.error(err));
+  }
 </script>
 
 </body>
