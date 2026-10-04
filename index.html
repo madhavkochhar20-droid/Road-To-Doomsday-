@@ -1312,6 +1312,8 @@
     return words.slice(0,3).map(w => w[0].toUpperCase()).join("") || "?";
   }
 
+  const seen = new Set();   // rows whose reveal animation already played
+  let flashId = null;       // the row just marked watched: blinks once
   let order = "chrono";
   let activePhase = "all";
   let searchTerm = "";
@@ -1614,6 +1616,7 @@
     const nowWatched = !watched.has(id);
     const rect = titleEl.getBoundingClientRect();
     if(nowWatched){ watched.add(id); } else { watched.delete(id); }
+    if(nowWatched) flashId = id;
     saveWatched();
     render();
     if(nowWatched){
@@ -1696,7 +1699,8 @@
           ${m.finale ? '<span class="tag">The finale of Phase 6</span>' : ""}
         </div>`;
       timeline.appendChild(row);
-      revealObserver.observe(row);
+      if(m.i === flashId){ row.classList.add("reveal"); seen.add(m.i); flashId = null; }
+      else if(!seen.has(m.i)) revealObserver.observe(row);
     });
 
     updateProgress();
@@ -1706,6 +1710,7 @@
     entries.forEach(e=>{
       if(e.isIntersecting){
         e.target.classList.add("reveal");
+        seen.add(Number(e.target.dataset.id));
         revealObserver.unobserve(e.target);
       }
     });
@@ -1877,6 +1882,7 @@
         applyStore({active:store.active, profiles:merged});
         if(!d.profiles || JSON.stringify(merged.map(slim)) !== JSON.stringify(remote.map(slim))) cloudPush(true); else setSync("ok");
       } else if(!snap.metadata.hasPendingWrites && remote.length){
+        if(JSON.stringify(remote.map(slim)) === JSON.stringify(store.profiles.map(slim))){ setSync("ok"); return; }
         applyStore({active:store.active, profiles:remote});   // change made on another device/tab
         setSync("ok");
       }
