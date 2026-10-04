@@ -406,6 +406,51 @@
   }
   .share-btn:hover{ border-color:var(--doom); color:var(--doom); }
 
+  /* ---------- Share card (PNG / PDF) ---------- */
+  .share-modal{
+    position:fixed; inset:0; z-index:1400;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.78);
+    padding:16px;
+    animation:rise 0.3s ease forwards;
+  }
+  .share-panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    width:min(440px, 100%);
+    max-height:100%;
+    overflow:auto;
+    padding:18px 18px 20px;
+    box-shadow:0 0 60px color-mix(in srgb, var(--doom-glow) 30%, transparent);
+  }
+  .share-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .share-head h3{ font-family:var(--font-display); font-weight:800; font-size:22px; margin:0; color:var(--ink); letter-spacing:0.02em; }
+  .share-x{ background:none; border:none; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:2px 6px; }
+  .share-x:hover{ color:var(--doom); }
+  .share-preview{
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--paper);
+    aspect-ratio:4 / 5;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    color:var(--muted); font-size:13px;
+  }
+  .share-preview img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .share-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+  .share-act{
+    font-family:var(--font-body); font-weight:600; font-size:13px;
+    color:var(--ink); background:none;
+    border:1px solid var(--line); border-radius:999px;
+    padding:10px 12px; cursor:pointer;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .share-act:hover:not(:disabled){ border-color:var(--doom); color:var(--doom); }
+  .share-act:disabled{ opacity:.45; cursor:default; }
+  .share-act.primary{ background:var(--doom); color:var(--paper); border-color:var(--doom); }
+  .share-act.primary:hover:not(:disabled){ color:var(--paper); filter:brightness(1.08); }
+
   /* ---------- Controls ---------- */
   .search-input{
     font-family:var(--font-body);
@@ -1569,18 +1614,220 @@
     }
   }
 
-  document.getElementById("share-btn").addEventListener("click", async ()=>{
-    const coreTotal = MOVIES.filter(m=>m.p!==7).length;
-    const coreDone = MOVIES.filter(m=>m.p!==7 && watched.has(m.i)).length;
-    const text = `I've watched ${coreDone} of ${coreTotal} MCU titles on the Road to Doomsday! 🛡️ Counting down to Avengers: Doomsday.`;
-    const btn = document.getElementById("share-btn");
+  // ---------- Share progress: PNG / PDF card with the CinePhobic logo ----------
+  const SHARE_W = 1080, SHARE_H = 1350;
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue("--" + n).trim();
+
+  function shareStats(){
+    const core = MOVIES.filter(m => m.p !== 7);
+    const done = core.filter(m => watched.has(m.i)).length;
+    const minsLeft = core.filter(m => !watched.has(m.i)).reduce((s, m) => s + (m.rt || 0), 0);
+    const phases = PHASES.filter(ph => ph.n !== 7).map(ph => {
+      const list = core.filter(m => m.p === ph.n);
+      return {n:ph.n, title:ph.title, total:list.length, done:list.filter(m => watched.has(m.i)).length};
+    }).filter(ph => ph.total);
+    const days = Math.max(0, Math.ceil((target - new Date()) / 864e5));
+    return {total:core.length, done, minsLeft, phases, days};
+  }
+  function shareText(st){
+    return `I've watched ${st.done} of ${st.total} MCU titles on the Road to Doomsday! 🛡️ Counting down to Avengers: Doomsday. — CinePhobic`;
+  }
+  function loadImg(src){
+    return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  }
+
+  async function drawShareCard(withBg){
     try{
-      await navigator.clipboard.writeText(text);
-      btn.textContent = "Copied!";
-    }catch(e){
-      btn.textContent = "Copy failed";
+      await Promise.all([
+        document.fonts.load('800 80px "Big Shoulders Display"'),
+        document.fonts.load('700 40px "Big Shoulders Display"'),
+        document.fonts.load('600 30px "IBM Plex Sans"'),
+      ]);
+    }catch(e){}
+    const st = shareStats(), prof = curProf(), T = THEMES[prof.av] || THEMES.default;
+    // the card is always dark: character themes are dark already, the default theme uses its dark palette
+    const D = T.c ? null : {paper:"#08090B", line:"#23261F", muted:"#96988E", ink:"#EDEAE2", doom:"#33D65C", glow:"#4CFF6E"};
+    const pick = (k, dk) => D ? D[dk || k] : cssVar(k);
+    const paper = pick("paper"), line = pick("line"), muted = pick("muted"), ink = pick("ink");
+    const doom = pick("doom"), glow = pick("doom-glow", "glow");
+    const DISP = '"Big Shoulders Display","Arial Narrow",sans-serif', BODY = '"IBM Plex Sans",-apple-system,"Segoe UI",sans-serif';
+
+    const c = document.createElement("canvas");
+    c.width = SHARE_W; c.height = SHARE_H;
+    const x = c.getContext("2d");
+    const W = SHARE_W, H = SHARE_H, cx = W / 2;
+    const ls = v => { if("letterSpacing" in x) x.letterSpacing = v + "px"; };
+    const rr = (px, py, w, h, r) => {
+      x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r);
+      x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath();
+    };
+
+    // background
+    x.fillStyle = paper; x.fillRect(0, 0, W, H);
+    if(withBg){
+      const bg = await loadImg("assets/throne-bg.jpg");
+      if(bg){
+        const k = Math.max(W / bg.width, H / bg.height), bw = bg.width * k, bh = bg.height * k;
+        x.globalAlpha = 0.32; x.drawImage(bg, (W - bw) / 2, (H - bh) / 2, bw, bh); x.globalAlpha = 1;
+      }
     }
-    setTimeout(()=> btn.textContent = "Share progress", 1800);
+    let g = x.createRadialGradient(cx, 420, 40, cx, 420, 820);
+    g.addColorStop(0, doom + "40"); g.addColorStop(1, "transparent");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, paper + "99"); g.addColorStop(0.55, paper + "55"); g.addColorStop(1, paper + "EE");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+    x.textAlign = "center"; x.textBaseline = "alphabetic";
+
+    // logo: CINEPHOBIC wordmark on top
+    x.font = `800 104px ${DISP}`; ls(4);
+    const w1 = x.measureText("CINE").width, w2 = x.measureText("PHOBIC").width, lx = cx - (w1 + w2) / 2;
+    x.textAlign = "left";
+    x.fillStyle = ink; x.fillText("CINE", lx, 148);
+    x.shadowColor = glow; x.shadowBlur = 28; x.fillStyle = doom; x.fillText("PHOBIC", lx + w1, 148); x.shadowBlur = 0;
+    x.textAlign = "center";
+    x.fillStyle = doom; x.fillRect(cx - 40, 180, 80, 4);
+
+    // title
+    ls(6); x.fillStyle = muted; x.font = `600 28px ${BODY}`;
+    x.fillText("AVENGERS DOOMSDAY COUNTDOWN", cx, 238);
+    ls(2); x.fillStyle = ink; x.font = `700 62px ${DISP}`; x.fillText("THE ROAD TO", cx, 318);
+    x.fillStyle = doom; x.font = `800 118px ${DISP}`; x.shadowColor = glow; x.shadowBlur = 24;
+    x.fillText("DOOMSDAY.", cx, 424); x.shadowBlur = 0;
+
+    // profile line
+    ls(0); x.fillStyle = ink; x.font = `600 34px ${BODY}`;
+    const who = `${T.e}  ${prof.name}'s progress`;
+    x.fillText(who, cx, 494);
+
+    // progress ring
+    const rx = cx, ry = 685, R = 150, lw = 28, pct = st.total ? st.done / st.total : 0;
+    x.lineCap = "round"; x.lineWidth = lw;
+    x.strokeStyle = line; x.beginPath(); x.arc(rx, ry, R, 0, Math.PI * 2); x.stroke();
+    if(pct > 0){
+      x.strokeStyle = doom; x.shadowColor = glow; x.shadowBlur = 22;
+      x.beginPath(); x.arc(rx, ry, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); x.stroke(); x.shadowBlur = 0;
+    }
+    x.fillStyle = ink; x.font = `800 118px ${DISP}`; x.fillText(Math.round(pct * 100) + "%", rx, ry + 28);
+    x.fillStyle = muted; x.font = `600 28px ${BODY}`; x.fillText("OF THE SAGA", rx, ry + 76);
+    x.fillStyle = ink; x.font = `600 38px ${BODY}`;
+    x.fillText(`${st.done} of ${st.total} titles watched`, cx, 918);
+
+    // phase bars
+    const bx = 120, bw2 = W - 240, rowH = 40, top = 960;
+    st.phases.forEach((ph, n) => {
+      const y = top + n * rowH, pa = PHASE_ACCENT[ph.n], col = (pa && !/var\(/.test(pa)) ? pa : doom;
+      x.textAlign = "left"; x.fillStyle = muted; x.font = `600 22px ${BODY}`;
+      x.fillText(ph.title.toUpperCase(), bx, y + 14);
+      x.textAlign = "right"; x.fillStyle = ink; x.fillText(`${ph.done}/${ph.total}`, bx + bw2, y + 14);
+      rr(bx, y + 22, bw2, 8, 4); x.fillStyle = line; x.fill();
+      if(ph.done){ rr(bx, y + 22, Math.max(8, bw2 * ph.done / ph.total), 8, 4); x.fillStyle = col; x.fill(); }
+    });
+
+    // footer
+    x.textAlign = "center";
+    const fy = H - 66;
+    x.fillStyle = line; x.fillRect(bx, fy - 44, bw2, 2);
+    x.fillStyle = ink; x.font = `700 34px ${DISP}`; ls(2);
+    const left = st.minsLeft > 0 ? `~${Math.floor(st.minsLeft / 60)}h ${st.minsLeft % 60}m left` : "All caught up";
+    x.fillText(`${st.days} DAYS TO DOOMSDAY  ·  ${left.toUpperCase()}`, cx, fy + 4);
+    x.fillStyle = muted; x.font = `500 22px ${BODY}`; ls(1);
+    x.fillText("DEC 18, 2026  ·  " + (location.host || "cinephobic"), cx, fy + 40);
+    ls(0);
+    return c;
+  }
+
+  function canvasBlob(c, type, q){ return new Promise(res => c.toBlob(res, type, q)); }
+  async function renderShareCard(){
+    let c = await drawShareCard(true);
+    try{ c.toDataURL("image/png"); }                    // throws if the background tainted the canvas (file:// preview)
+    catch(e){ c = await drawShareCard(false); }
+    return c;
+  }
+
+  // Single-image PDF, built by hand so no library is needed
+  function makePDF(jpegDataUrl, w, h){
+    const bin = atob(jpegDataUrl.split(",")[1]), img = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) img[i] = bin.charCodeAt(i);
+    const pw = 595, ph = Math.round(595 * h / w), enc = new TextEncoder(), parts = [], off = [];
+    let len = 0;
+    const put = d => { const u = typeof d === "string" ? enc.encode(d) : d; parts.push(u); len += u.length; };
+    const content = `q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;
+    put("%PDF-1.4\n");
+    off[1] = len; put("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    off[2] = len; put("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+    off[3] = len; put(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`);
+    off[4] = len; put(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`);
+    put(img); put("\nendstream\nendobj\n");
+    off[5] = len; put(`5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+    const xref = len;
+    put("xref\n0 6\n0000000000 65535 f \n");
+    for(let i = 1; i <= 5; i++) put(String(off[i]).padStart(10, "0") + " 00000 n \n");
+    put(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+    return new Blob(parts, {type:"application/pdf"});
+  }
+
+  function saveBlob(blob, name){
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  let shareModal = null;
+  function closeShare(){ if(shareModal){ shareModal.remove(); shareModal = null; } }
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeShare(); });
+
+  document.getElementById("share-btn").addEventListener("click", async () => {
+    closeShare();
+    const st = shareStats(), text = shareText(st);
+    const slug = (curProf().name || "me").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "me";
+    const base = `cinephobic-road-to-doomsday-${slug}`;
+    shareModal = document.createElement("div");
+    shareModal.className = "share-modal";
+    shareModal.innerHTML = `
+      <div class="share-panel" role="dialog" aria-label="Share progress">
+        <div class="share-head"><h3>Share your progress</h3><button class="share-x" type="button" aria-label="Close">&times;</button></div>
+        <div class="share-preview" id="share-preview">Making your card…</div>
+        <div class="share-actions">
+          <button class="share-act primary" id="sh-png" type="button" disabled>Download PNG</button>
+          <button class="share-act primary" id="sh-pdf" type="button" disabled>Download PDF</button>
+          <button class="share-act" id="sh-open" type="button" disabled>Preview PDF</button>
+          <button class="share-act" id="sh-share" type="button" disabled>Share…</button>
+          <button class="share-act" id="sh-copy" type="button" style="grid-column:1 / -1">Copy text instead</button>
+        </div>
+      </div>`;
+    document.body.appendChild(shareModal);
+    const m = shareModal, $ = id => m.querySelector(id);
+    m.addEventListener("click", e => { if(e.target === m || e.target.closest(".share-x")) closeShare(); });
+    $("#sh-copy").addEventListener("click", async () => {
+      const b = $("#sh-copy");
+      try{ await navigator.clipboard.writeText(text); b.textContent = "Copied!"; }catch(e){ b.textContent = "Copy failed"; }
+      setTimeout(() => { if(b.isConnected) b.textContent = "Copy text instead"; }, 1800);
+    });
+
+    try{
+      const c = await renderShareCard();
+      if(shareModal !== m) return;                      // closed while rendering
+      const png = await canvasBlob(c, "image/png");
+      const pdf = makePDF(c.toDataURL("image/jpeg", 0.92), c.width, c.height);
+      const pngUrl = URL.createObjectURL(png), pdfUrl = URL.createObjectURL(pdf);
+      $("#share-preview").innerHTML = `<img alt="Your Road to Doomsday progress card" src="${pngUrl}">`;
+      const on = id => { $(id).disabled = false; };
+      ["#sh-png", "#sh-pdf", "#sh-open"].forEach(on);
+      $("#sh-png").addEventListener("click", () => saveBlob(png, base + ".png"));
+      $("#sh-pdf").addEventListener("click", () => saveBlob(pdf, base + ".pdf"));
+      $("#sh-open").addEventListener("click", () => window.open(pdfUrl, "_blank"));
+      const file = new File([png], base + ".png", {type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        on("#sh-share");
+        $("#sh-share").addEventListener("click", () => {
+          navigator.share({files:[file], text}).catch(() => {});
+        });
+      }
+    }catch(e){
+      if(shareModal === m) $("#share-preview").textContent = "Couldn't make the image. Try again, or copy the text instead.";
+    }
   });
 
   function showMilestone(){
