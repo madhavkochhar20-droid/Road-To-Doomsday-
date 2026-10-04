@@ -109,15 +109,15 @@
     opacity:0;
     animation:rise 0.7s cubic-bezier(.2,.8,.2,1) forwards;
   }
-  @keyframes doomed-glow{
-    0%, 100%{
+  @keyframes doomed-glow{   /* second half of the 8s cycle */
+    0%, 50%, 100%{
       opacity:0.11;
       letter-spacing:0.01em;
       text-shadow:
         0 0 8px color-mix(in srgb, var(--doom-glow) 35%, transparent),
         0 0 24px transparent;
     }
-    50%{
+    75%{
       opacity:0.3;
       letter-spacing:0.035em;
       text-shadow:
@@ -220,29 +220,6 @@
     position:relative;
     z-index:1;
   }
-  .beams{
-    position:absolute;
-    top:50%; left:70%;
-    width:480px; height:480px;
-    margin:-240px 0 0 -240px;
-    background:conic-gradient(from 0deg,
-      transparent 0deg,
-      color-mix(in srgb, var(--doom-glow) 14%, transparent) 8deg,
-      transparent 20deg,
-      transparent 100deg,
-      color-mix(in srgb, var(--doom-glow) 10%, transparent) 112deg,
-      transparent 128deg,
-      transparent 220deg,
-      color-mix(in srgb, var(--doom-glow) 12%, transparent) 230deg,
-      transparent 246deg,
-      transparent 360deg);
-    animation:rotate-slow 9s linear infinite;
-    pointer-events:none;
-    z-index:0;
-  }
-  @media (prefers-reduced-motion: reduce){
-    .beams{ animation:none; }
-  }
   .hero::before{
     content:"";
     position:absolute;
@@ -272,7 +249,7 @@
     pointer-events:none;
     z-index:0;
     opacity:0.11;
-    animation:doomed-glow 4.5s ease-in-out infinite;
+    animation:doomed-glow 8s ease-in-out infinite;
   }
   @media (prefers-reduced-motion: reduce){
     .doomed-mark{ animation:none; opacity:0.14; text-shadow:0 0 30px var(--doom-glow); }
@@ -312,11 +289,12 @@
   h1 span{
     display:block;
     color:var(--doom);
-    animation:glow 3.2s ease-in-out infinite alternate;
+    animation:glow 8s ease-in-out infinite;
   }
-  @keyframes glow{
-    from{ text-shadow:0 0 6px transparent; }
-    to{ text-shadow:0 0 28px var(--doom-glow), 0 0 6px var(--doom-glow); }
+  @keyframes glow{   /* first half of the 8s cycle */
+    0%{ text-shadow:0 0 6px transparent; }
+    25%{ text-shadow:0 0 28px var(--doom-glow), 0 0 6px var(--doom-glow); }
+    50%, 100%{ text-shadow:0 0 6px transparent; }
   }
   @media (prefers-reduced-motion: reduce){
     h1 span{ animation:none; text-shadow:0 0 16px var(--doom-glow); }
@@ -1160,7 +1138,6 @@
 
   <div class="hero">
     <div class="throne-bg"></div>
-    <div class="beams"></div>
     <div class="doomed-mark">WE'RE DOOMED!</div>
     <div class="hero-inner">
       <p class="kicker rise" style="--d:.05s">Avengers Doomsday Countdown by CinePhobic</p>
