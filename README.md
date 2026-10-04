@@ -43,7 +43,8 @@ Until `firebase-config.js` is filled in, the Sign in button shows a "not set up 
 Tap the profile chip in the header to open the Disney+-style "Who's watching?" screen. Each profile
 (up to 5) has its own name, character avatar and watch progress. The avatar's character is also the
 interface theme (Spider-Man, Iron Man, Black Panther, Thor, Captain America, Hulk): palette, background
-pattern, hero tagline, favicon and the emoji burst all change. Add more themes in the `THEMES` object.
+pattern, hero tagline and the emoji burst all change. Add more themes in the `THEMES` object.
+The favicon is always the CinePhobic logo (`assets/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`; bump the `?v=` in the `<link>` tags to bust browser caches).
 Profiles are stored in `localStorage` (`doomsday-profiles`) and synced to Firestore when signed in.
 **After updating, re-publish `firestore.rules`** (it now allows a `profiles` list).
 
