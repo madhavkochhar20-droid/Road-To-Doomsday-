@@ -85,8 +85,7 @@
     inset:0;
     z-index:999;
     pointer-events:none;
-    opacity:0.05;
-    mix-blend-mode:overlay;
+    opacity:0.035;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 
@@ -94,11 +93,13 @@
     position:fixed;
     top:0; left:0;
     height:3px;
-    width:0%;
+    width:100%;
+    transform:scaleX(0);
+    transform-origin:0 50%;
+    will-change:transform;
     background:linear-gradient(90deg, var(--doom), var(--doom-glow));
     box-shadow:0 0 10px var(--doom-glow);
     z-index:1000;
-    transition:width .1s linear;
   }
 
   @keyframes rise{
@@ -535,7 +536,6 @@
     border-left:3px solid transparent;
     position:relative;
     transition:border-left-color .25s ease, background-color .25s ease, transform .25s ease;
-    clip-path:inset(0 0 0 0);
   }
   .entry:last-child{ border-bottom:1px solid var(--line); }
   .entry:hover{
@@ -1100,6 +1100,14 @@
   .pick:hover{ color:var(--ink); }
   .pick.active{ border-color:var(--doom); color:var(--ink); }
   .ed-row{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+
+  /* ---------- Scroll performance ---------- */
+  body.scrolling .timeline{ pointer-events:none; }               /* rows under the cursor stop re-triggering hover transitions mid-scroll */
+  .poster::before, .poster-inner::after{ animation-play-state:paused; }   /* ~50 endless animations were running at once */
+  .entry:hover .poster::before, .entry:hover .poster-inner::after,
+  .up-next .poster::before, .up-next .poster-inner::after,
+  .finale .poster::before, .finale .poster-inner::after{ animation-play-state:running; }
+  html.hero-off .hero, html.hero-off .hero *{ animation-play-state:paused !important; }
 </style>
 </head>
 <body>
@@ -1289,7 +1297,6 @@
     return words.slice(0,3).map(w => w[0].toUpperCase()).join("") || "?";
   }
 
-  const seen = new Set();   // rows whose reveal animation already played
   let flashId = null;       // the row just marked watched: blinks once
   let order = "chrono";
   let activePhase = "all";
@@ -1676,35 +1683,36 @@
           ${m.finale ? '<span class="tag">The finale of Phase 6</span>' : ""}
         </div>`;
       timeline.appendChild(row);
-      if(m.i === flashId){ row.classList.add("reveal"); seen.add(m.i); flashId = null; }
-      else if(!seen.has(m.i)) revealObserver.observe(row);
+      if(m.i === flashId){ row.classList.add("reveal"); flashId = null; }   // only the row just ticked blinks, once
     });
 
     updateProgress();
   }
 
-  const revealObserver = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        e.target.classList.add("reveal");
-        seen.add(Number(e.target.dataset.id));
-        revealObserver.unobserve(e.target);
-      }
-    });
-  }, {rootMargin:"0px 0px -8% 0px", threshold:0.1});
-
   render();
 
-  // Scroll progress bar
+  // Scroll progress bar (transform only, one update per frame) + hover freeze while scrolling
   const progressBar = document.getElementById("scroll-progress");
+  let scrollRaf = 0, scrollIdle = 0;
   function updateScrollProgress(){
+    scrollRaf = 0;
     const h = document.documentElement;
-    const scrolled = h.scrollTop;
     const height = h.scrollHeight - h.clientHeight;
-    progressBar.style.width = (height > 0 ? (scrolled / height) * 100 : 0) + "%";
+    progressBar.style.transform = "scaleX(" + (height > 0 ? Math.min(1, h.scrollTop / height) : 0) + ")";
   }
-  document.addEventListener("scroll", updateScrollProgress, {passive:true});
+  document.addEventListener("scroll", ()=>{
+    if(!scrollRaf) scrollRaf = requestAnimationFrame(updateScrollProgress);
+    document.body.classList.add("scrolling");
+    clearTimeout(scrollIdle);
+    scrollIdle = setTimeout(()=> document.body.classList.remove("scrolling"), 120);
+  }, {passive:true});
   updateScrollProgress();
+
+  // Pause the hero's glow animations once the hero is off-screen
+  const heroEl = document.querySelector(".hero");
+  if(heroEl && "IntersectionObserver" in window){
+    new IntersectionObserver(es => document.documentElement.classList.toggle("hero-off", !es[0].isIntersecting)).observe(heroEl);
+  }
 
   // Countdown to Dec 18, 2026
   const target = new Date("2026-12-18T00:00:00");
