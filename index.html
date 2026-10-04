@@ -18,7 +18,9 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Road to Doomsday — MCU Chronology">
 <meta property="og:description" content="Every MCU film and Disney+ series in order, a live countdown to Avengers: Doomsday, and a watch tracker.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="assets/favicon.ico?v=2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
 <title>The Road to Doomsday — MCU Chronology</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1504,7 +1506,6 @@
     document.querySelector(".doomed-mark").textContent = T.mark || DEF_MARK;
     document.querySelector(".kicker").textContent = T.kick || DEF_KICK;
     document.querySelector('meta[name="theme-color"]').content = T.c ? T.c[0] : "#08090B";
-    document.querySelector('link[rel="icon"]').href = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${T.e}</text></svg>`);
     themeBtn.hidden = !!T.c;   // light/dark toggle only applies to the default theme
   }
   const posterColors = p => {
