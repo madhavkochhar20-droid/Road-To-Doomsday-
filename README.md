@@ -46,6 +46,10 @@ interface theme (Spider-Man, Iron Man, Black Panther, Thor, Captain America, Hul
 pattern, hero tagline and the emoji burst all change. Add more themes in the `THEMES` object.
 The favicon is always the CinePhobic logo (`assets/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`; bump the `?v=` in the `<link>` tags to bust browser caches).
 Profiles are stored in `localStorage` (`doomsday-profiles`) and synced to Firestore when signed in.
+
+When signed in, "Who's Here?" appears first on every visit (after the intro) and the site opens only once a profile is picked.
+The Google session persists across browser restarts (Firebase LOCAL persistence) until the user taps Sign out.
+When signed in, the account chip shows the active profile (avatar + name) and replaces the separate profile button. Its dropdown has: Hi, <profile name> (+ Switch profile), website theme (Spider-Man, Hulk, ...), appearance (System / Light / Dark, works with every theme), the Google email, and Sign out.
 **After updating, re-publish `firestore.rules`** (it now allows a `profiles` list).
 
 ## Where to watch
