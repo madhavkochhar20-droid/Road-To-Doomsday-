@@ -924,17 +924,52 @@
   }
   .auth-btn:hover{ border-color:var(--doom); }
   .auth-btn:focus-visible, .signout-btn:focus-visible{ outline:2px solid var(--doom); outline-offset:2px; }
-  .auth-user{
+  .auth-user{ display:inline-flex; }
+  .auth-trigger{
     display:inline-flex;
     align-items:center;
     gap:8px;
+    font-family:var(--font-body);
     font-size:12.5px;
     color:var(--ink);
     border:1px solid var(--line);
     border-radius:999px;
     padding:3px 12px 3px 4px;
     background:var(--surface);
+    cursor:pointer;
+    transition:border-color .2s ease;
   }
+  .auth-trigger:hover, .auth-trigger[aria-expanded="true"]{ border-color:var(--doom); }
+  .auth-trigger:focus-visible{ outline:2px solid var(--doom); outline-offset:2px; }
+  .auth-trigger .caret{ font-size:10px; color:var(--muted); transition:transform .2s ease; }
+  .auth-trigger[aria-expanded="true"] .caret{ transform:rotate(180deg); }
+  .auth-menu{
+    position:fixed; z-index:1300;
+    background:var(--surface); color:var(--ink);
+    border:1px solid var(--line); border-radius:16px;
+    padding:14px; box-shadow:0 14px 40px rgba(0,0,0,.45);
+    max-height:calc(100vh - 90px); overflow:auto;
+    font-family:var(--font-body);
+  }
+  .auth-menu[hidden]{ display:none; }
+  .am-head{ display:flex; flex-direction:column; gap:2px; padding:2px 2px 12px; border-bottom:1px solid var(--line); margin-bottom:12px; }
+  .am-head strong{ font-size:14px; }
+  .am-head span{ font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .am-label{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:2px 2px 8px; }
+  .am-label span{ text-transform:none; letter-spacing:0; font-weight:500; }
+  .am-picks{ width:auto; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:14px; }
+  .am-picks .pick{ padding:6px 2px; }
+  .am-picks .pick .pav{ width:40px; height:40px; font-size:20px; }
+  .am-seg{ display:flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .am-seg button{ flex:1; background:none; border:none; color:var(--muted); font:600 12px var(--font-body); padding:8px 0; cursor:pointer; }
+  .am-seg button.active{ background:var(--doom); color:var(--paper); }
+  .am-seg button:disabled{ cursor:not-allowed; opacity:.45; }
+  .am-note{ font-size:11.5px; color:var(--muted); margin:8px 2px 0; }
+  .am-out{ width:100%; margin-top:14px; padding:9px; background:none; border:1px solid var(--line); border-radius:999px; color:var(--muted); font:600 13px var(--font-body); cursor:pointer; }
+  .am-out:hover{ color:#E5484D; border-color:#E5484D; }
+  .gate-load{ display:flex; gap:10px; }
+  .gate-load i{ width:10px; height:10px; border-radius:50%; background:var(--doom); animation:pulse-dot 1.1s ease-in-out infinite; }
+  .gate-load i:nth-child(2){ animation-delay:.18s; } .gate-load i:nth-child(3){ animation-delay:.36s; }
   .auth-user[hidden], .auth-btn[hidden]{ display:none; }
   .avatar{
     width:24px; height:24px;
@@ -1208,10 +1243,12 @@
         <span>Sign in</span>
       </button>
       <div class="auth-user" id="auth-user" hidden>
-        <span class="avatar" id="auth-avatar"></span>
-        <span class="auth-name" id="auth-name"></span>
-        <span class="sync-state" id="sync-state"></span>
-        <button class="signout-btn" id="signout-btn" type="button">Sign out</button>
+        <button class="auth-trigger" id="auth-trigger" type="button" aria-haspopup="true" aria-expanded="false" title="Account &amp; theme">
+          <span class="avatar" id="auth-avatar"></span>
+          <span class="auth-name" id="auth-name"></span>
+          <span class="sync-state" id="sync-state"></span>
+          <span class="caret" aria-hidden="true">&#9662;</span>
+        </button>
       </div>
       <button class="prof-btn" id="prof-btn" type="button" title="Switch profile"><span id="prof-av"></span><span id="prof-name"></span></button>
       <button class="theme-btn" id="theme-btn" title="Toggle theme">◐</button>
@@ -1266,6 +1303,11 @@
 
   <div id="milestone-slot"></div>
   <div id="gate-slot"></div>
+  <div class="auth-menu" id="auth-menu" hidden>
+    <div class="am-head"><strong id="am-name"></strong><span id="am-email"></span></div>
+    <div id="am-dyn"></div>
+    <button class="am-out" id="signout-btn" type="button">Sign out</button>
+  </div>
   <div id="wtw-slot"></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1568,10 +1610,16 @@
 
   const gateSlot = document.getElementById("gate-slot");
   let editing = false, edId = null, edAv = "default";
-  function closeGate(){ gateSlot.innerHTML = ""; editing = false; }
+  let gateRequired = false, gateLoading = false;   // required = start-up gate: must pick a profile before the site opens
+  function closeGate(){ gateSlot.innerHTML = ""; editing = false; gateRequired = false; gateLoading = false; }
+  function drawLoadingGate(){
+    gateRequired = true; gateLoading = true;
+    gateSlot.innerHTML = `<div class="gate" role="dialog" aria-modal="true" aria-label="Loading profiles"><h2>Who's Here?</h2><div class="gate-load"><i></i><i></i><i></i></div></div>`;
+  }
+  function openStartGate(){ editing = false; gateRequired = true; gateLoading = false; drawGate(); }
   function drawGate(){
     gateSlot.innerHTML = `<div class="gate" role="dialog" aria-modal="true" aria-label="Choose profile">
-      <button class="gate-close" id="gate-close" aria-label="Close">✕</button>
+      ${gateRequired ? "" : '<button class="gate-close" id="gate-close" aria-label="Close">✕</button>'}
       <h2>${editing ? "Manage profiles" : "Who's Here?"}</h2>
       <div class="gate-grid">
         ${store.profiles.map(p => `<button class="tile" data-id="${p.id}">${avHTML(p.av)}${editing ? '<span class="pen">✎</span>' : ""}<span>${esc(p.name)}</span></button>`).join("")}
@@ -1630,12 +1678,21 @@
     if(editing){ edId = tile.dataset.id; edAv = store.profiles.find(x => x.id === edId).av; drawEditor(); return; }
     switchProfile(tile.dataset.id); closeGate();
   });
-  document.addEventListener("keydown", e=>{ if(e.key === "Escape" && gateSlot.firstChild) closeGate(); });
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape" && gateSlot.firstChild && !gateRequired) closeGate(); });
   document.getElementById("prof-btn").addEventListener("click", drawGate);
   applyChar(curProf().av);
   updateChip();
   // Disney+-style "Who's Here?" screen, shown after the intro when there is more than one profile
-  (window.introDone || Promise.resolve()).then(()=>{ if(store.profiles.length > 1) drawGate(); });
+  // After the intro: a returning signed-in user always sees "Who's Here?" first (shown as a loading gate until the
+  // account's profiles arrive); guests only see it when they have more than one profile.
+  (window.introDone || Promise.resolve()).then(()=>{
+    let hinted = false;
+    try{ hinted = localStorage.getItem("doomsday-signed-in") === "1"; }catch(e){}
+    if(hinted){
+      drawLoadingGate();
+      setTimeout(()=>{ if(gateLoading) closeGate(); }, 10000);   // failsafe: never trap the user behind the gate
+    } else if(store.profiles.length > 1) drawGate();
+  });
 
 
   // Counts for the current mode, split into movies and series
@@ -2281,6 +2338,8 @@
     if(!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
     fbAuth = firebase.auth();
     fbDb = firebase.firestore();
+    // Keep the Google session across browser restarts (stored in IndexedDB until the user signs out)
+    try{ fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{}); }catch(e){}
     fbAuth.onAuthStateChanged(onUser);
     return true;
   }
@@ -2292,6 +2351,8 @@
     if(!signedIn) return;
     const name = user.displayName || user.email || "You";
     document.getElementById("auth-name").textContent = name.split(" ")[0];
+    document.getElementById("am-name").textContent = name;
+    document.getElementById("am-email").textContent = user.email || "";
     const av = document.getElementById("auth-avatar");
     av.textContent = "";
     if(user.photoURL){
@@ -2306,7 +2367,12 @@
     cloudUser = user;
     showUser(user);
     if(cloudUnsub){ cloudUnsub(); cloudUnsub = null; }
-    if(!user){ setSync(""); return; }
+    try{ if(user) localStorage.setItem("doomsday-signed-in", "1"); else localStorage.removeItem("doomsday-signed-in"); }catch(e){}
+    if(!user){
+      setSync(""); closeAuthMenu();
+      if(gateLoading){ closeGate(); if(store.profiles.length > 1) drawGate(); }   // hint was stale: behave like a guest
+      return;
+    }
 
     const ref = fbDb.collection("users").doc(user.uid);
     let first = true;
@@ -2324,6 +2390,7 @@
         let active = store.active;
         if(remoteActive && merged.some(p => p.id === remoteActive) && (guestOnly || !merged.some(p => p.id === store.active))) active = remoteActive;
         applyStore({active, profiles:merged});
+        openStartGate();   // signed in: choose a profile first, then the site opens
         if(!d.profiles || JSON.stringify(merged.map(slim)) !== JSON.stringify(remote.map(slim)) || remoteActive !== store.active) cloudPush(true); else setSync("ok");
       } else if(!snap.metadata.hasPendingWrites && remote.length){
         if(JSON.stringify(remote.map(slim)) === JSON.stringify(store.profiles.map(slim))){ setSync("ok"); return; }
@@ -2333,6 +2400,7 @@
     }, err=>{
       console.error(err);
       setSync("err");
+      if(gateLoading) closeGate();
       toast("Couldn't reach your saved progress. Check your connection and Firestore rules.");
     });
   }
@@ -2349,6 +2417,48 @@
     };
     if(now) run(); else pushTimer = setTimeout(run, 500);
   }
+
+  // ---------- Account dropdown: website theme (per profile) + light/dark ----------
+  const authTrigger = document.getElementById("auth-trigger"), authMenu = document.getElementById("auth-menu"), amDyn = document.getElementById("am-dyn");
+  function drawAuthMenu(){
+    const p = curProf(), locked = !!(THEMES[p.av] || THEMES.default).c;
+    const cur = document.documentElement.getAttribute("data-theme") || "";
+    const picks = Object.keys(THEMES).map(k => `<button type="button" class="pick${k === p.av ? " active" : ""}" data-k="${k}">${avHTML(k)}<span>${esc(THEMES[k].n)}</span></button>`).join("");
+    const segs = [["", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-m="${v}"${!locked && cur === v ? ' class="active"' : ""}${locked ? " disabled" : ""}>${l}</button>`).join("");
+    amDyn.innerHTML = `<div class="am-label">Website theme <span>&middot; ${esc(p.name)}</span></div>
+      <div class="picks am-picks">${picks}</div>
+      <div class="am-label">Appearance</div>
+      <div class="am-seg">${segs}</div>
+      ${locked ? '<div class="am-note">Light / dark applies to the Doomsday theme. Character themes are always dark.</div>' : ""}`;
+  }
+  function placeAuthMenu(){
+    const r = authTrigger.getBoundingClientRect(), w = Math.min(310, window.innerWidth - 24);
+    authMenu.style.width = w + "px";
+    authMenu.style.top = (r.bottom + 8) + "px";
+    authMenu.style.left = Math.min(Math.max(12, r.right - w), window.innerWidth - w - 12) + "px";
+  }
+  function openAuthMenu(){ drawAuthMenu(); authMenu.hidden = false; authTrigger.setAttribute("aria-expanded", "true"); placeAuthMenu(); }
+  function closeAuthMenu(){ authMenu.hidden = true; authTrigger.setAttribute("aria-expanded", "false"); }
+  authTrigger.addEventListener("click", e => { e.stopPropagation(); authMenu.hidden ? openAuthMenu() : closeAuthMenu(); });
+  document.addEventListener("click", e => { if(!authMenu.hidden && !authMenu.contains(e.target)) closeAuthMenu(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeAuthMenu(); });
+  ["resize", "scroll"].forEach(ev => window.addEventListener(ev, ()=>{ if(!authMenu.hidden) placeAuthMenu(); }, {passive:true}));
+  authMenu.addEventListener("click", e => {
+    const pk = e.target.closest(".pick"), seg = e.target.closest("[data-m]");
+    if(pk){
+      const p = curProf();
+      p.av = pk.dataset.k; p.pristine = false;
+      persist(); applyChar(p.av); updateChip(); render();
+      cloudPush(true);                       // theme follows the account
+      drawAuthMenu(); return;
+    }
+    if(seg && !seg.disabled){
+      const v = seg.dataset.m || null;
+      applyTheme(v);
+      try{ localStorage.setItem("doomsday-theme", v || ""); }catch(err){}
+      drawAuthMenu();
+    }
+  });
 
   authBtn.addEventListener("click", async ()=>{
     if(!fbConfigured){
@@ -2382,6 +2492,7 @@
     try{ await fbAuth.signOut(); }catch(e){ console.error(e); }
     // Progress belongs to the account: clear it from this browser so the next person on a shared device starts fresh
     try{ localStorage.removeItem(STORE_KEY); localStorage.removeItem(WATCHED_KEY); }catch(e){}
+    closeAuthMenu(); closeGate();
     applyStore(loadStore());
     toast("Signed out. Your progress is saved to your Google account.");
   });
