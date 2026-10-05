@@ -948,17 +948,22 @@
     background:var(--surface); color:var(--ink);
     border:1px solid var(--line); border-radius:16px;
     padding:14px; box-shadow:0 14px 40px rgba(0,0,0,.45);
-    max-height:calc(100vh - 90px); overflow:auto;
+    max-height:calc(100vh - 90px); overflow-y:auto; overflow-x:hidden;
     font-family:var(--font-body);
   }
   .auth-menu[hidden]{ display:none; }
-  .am-head{ display:flex; flex-direction:column; gap:2px; padding:2px 2px 12px; border-bottom:1px solid var(--line); margin-bottom:12px; }
-  .am-head strong{ font-size:14px; }
-  .am-head span{ font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .am-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 2px 12px; border-bottom:1px solid var(--line); margin-bottom:12px; }
+  .am-head strong{ font:700 22px var(--font-display); letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .am-switch{ flex-shrink:0; font:600 11.5px var(--font-body); color:var(--muted); background:none; border:1px solid var(--line); border-radius:999px; padding:5px 12px; cursor:pointer; }
+  .am-switch:hover, .am-switch:focus-visible{ color:var(--ink); border-color:var(--ink); outline:none; }
+  .am-mail{ display:flex; flex-direction:column; gap:2px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+  .am-mail span{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .am-mail b{ font-size:13px; font-weight:500; word-break:break-all; }
   .am-label{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:2px 2px 8px; }
   .am-label span{ text-transform:none; letter-spacing:0; font-weight:500; }
-  .am-picks{ width:auto; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:14px; }
-  .am-picks .pick{ padding:6px 2px; }
+  .auth-menu .am-picks{ width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+  .am-picks .pick{ padding:6px 2px; min-width:0; }
+  .am-picks .pick span{ text-align:center; line-height:1.2; }
   .am-picks .pick .pav{ width:40px; height:40px; font-size:20px; }
   .am-seg{ display:flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
   .am-seg button{ flex:1; background:none; border:none; color:var(--muted); font:600 12px var(--font-body); padding:8px 0; cursor:pointer; }
@@ -967,6 +972,7 @@
   .am-note{ font-size:11.5px; color:var(--muted); margin:8px 2px 0; }
   .am-out{ width:100%; margin-top:14px; padding:9px; background:none; border:1px solid var(--line); border-radius:999px; color:var(--muted); font:600 13px var(--font-body); cursor:pointer; }
   .am-out:hover{ color:#E5484D; border-color:#E5484D; }
+  .prof-btn[hidden]{ display:none; }
   .gate-load{ display:flex; gap:10px; }
   .gate-load i{ width:10px; height:10px; border-radius:50%; background:var(--doom); animation:pulse-dot 1.1s ease-in-out infinite; }
   .gate-load i:nth-child(2){ animation-delay:.18s; } .gate-load i:nth-child(3){ animation-delay:.36s; }
@@ -1020,7 +1026,7 @@
   }
   .toast.show{ opacity:1; transform:translate(-50%, 0); }
   @media (max-width:560px){
-    .auth-name, .sync-state{ display:none; }
+    .sync-state{ display:none; }
     .live-pill{ display:none; }
   }
 
@@ -1244,7 +1250,7 @@
       </button>
       <div class="auth-user" id="auth-user" hidden>
         <button class="auth-trigger" id="auth-trigger" type="button" aria-haspopup="true" aria-expanded="false" title="Account &amp; theme">
-          <span class="avatar" id="auth-avatar"></span>
+          <span id="auth-av"></span>
           <span class="auth-name" id="auth-name"></span>
           <span class="sync-state" id="sync-state"></span>
           <span class="caret" aria-hidden="true">&#9662;</span>
@@ -1304,8 +1310,9 @@
   <div id="milestone-slot"></div>
   <div id="gate-slot"></div>
   <div class="auth-menu" id="auth-menu" hidden>
-    <div class="am-head"><strong id="am-name"></strong><span id="am-email"></span></div>
+    <div class="am-head"><strong id="am-hi"></strong><button class="am-switch" id="am-switch" type="button">Switch profile</button></div>
     <div id="am-dyn"></div>
+    <div class="am-mail"><span>Signed in as</span><b id="am-email"></b></div>
     <button class="am-out" id="signout-btn" type="button">Sign out</button>
   </div>
   <div id="wtw-slot"></div>
@@ -1454,6 +1461,7 @@
     const current = document.documentElement.getAttribute("data-theme");
     const next = current === "dark" ? "light" : (current === "light" ? null : "dark");
     applyTheme(next);
+    applyChar(curProf().av);
     try{ localStorage.setItem("doomsday-theme", next || ""); }catch(e){}
   });
 
@@ -1539,16 +1547,20 @@
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'><path d='${p[1]}' fill='none' stroke='${color}' stroke-opacity='.16' stroke-width='1'/></svg>`;
     return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   }
+  // Light/dark for character themes: dark = the theme's own palette; light = neutral light surfaces + the theme's accents
+  const curScheme = () => document.documentElement.getAttribute("data-theme") || (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const mixHex = (a, b, t) => { const q = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const x = q(a), y = q(b); return "#" + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join(""); };
+  const charColors = (T, scheme) => scheme !== "light" ? T.c : ["#F4F1EA", "#FFFFFF", "#DAD5C8", "#6B6558", "#17181C",
+    mixHex(T.c[5], "#000000", .42), mixHex(T.c[5], "#FFFFFF", .88), T.c[7], mixHex(T.c[8], "#000000", .32), mixHex(T.c[8], "#FFFFFF", .88)];
   const DEF_MARK = document.querySelector(".doomed-mark").textContent;
   const DEF_KICK = document.querySelector(".kicker").textContent;
   function applyChar(key){
-    const T = THEMES[key] || THEMES.default, r = document.documentElement;
-    VARS.forEach((v, n)=>{ if(T.c) r.style.setProperty("--" + v, T.c[n]); else r.style.removeProperty("--" + v); });
-    if(T.c) r.style.setProperty("--pat", patUrl(T.pat, T.c[7])); else r.style.removeProperty("--pat");
+    const T = THEMES[key] || THEMES.default, r = document.documentElement, C = T.c ? charColors(T, curScheme()) : null;
+    VARS.forEach((v, n)=>{ if(C) r.style.setProperty("--" + v, C[n]); else r.style.removeProperty("--" + v); });
+    if(C) r.style.setProperty("--pat", patUrl(T.pat, C[7])); else r.style.removeProperty("--pat");
     document.querySelector(".doomed-mark").textContent = T.mark || DEF_MARK;
     document.querySelector(".kicker").textContent = T.kick || DEF_KICK;
-    document.querySelector('meta[name="theme-color"]').content = T.c ? T.c[0] : "#08090B";
-    themeBtn.hidden = !!T.c;   // light/dark toggle only applies to the default theme
+    document.querySelector('meta[name="theme-color"]').content = C ? C[0] : "#08090B";
   }
   const posterColors = p => {
     const T = THEMES[curProf().av];
@@ -1606,6 +1618,9 @@
     const p = curProf();
     document.getElementById("prof-av").innerHTML = avHTML(p.av);
     document.getElementById("prof-name").textContent = p.name;
+    const ca = document.getElementById("auth-av"), cn = document.getElementById("auth-name");   // signed-in chip shows the profile
+    if(ca) ca.innerHTML = avHTML(p.av);
+    if(cn) cn.textContent = p.name;
   }
 
   const gateSlot = document.getElementById("gate-slot");
@@ -1682,6 +1697,7 @@
   document.getElementById("prof-btn").addEventListener("click", drawGate);
   applyChar(curProf().av);
   updateChip();
+  try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ if(!document.documentElement.getAttribute("data-theme")) applyChar(curProf().av); }); }catch(e){}
   // Disney+-style "Who's Here?" screen, shown after the intro when there is more than one profile
   // After the intro: a returning signed-in user always sees "Who's Here?" first (shown as a loading gate until the
   // account's profiles arrive); guests only see it when they have more than one profile.
@@ -1753,8 +1769,8 @@
     }catch(e){}
     const st = shareStats(), prof = curProf(), T = THEMES[prof.av] || THEMES.default;
     // the card is always dark: character themes are dark already, the default theme uses its dark palette
-    const D = T.c ? null : {paper:"#08090B", line:"#23261F", muted:"#96988E", ink:"#EDEAE2", doom:"#33D65C", glow:"#4CFF6E"};
-    const pick = (k, dk) => D ? D[dk || k] : cssVar(k);
+    const D = T.c ? {paper:T.c[0], line:T.c[2], muted:T.c[3], ink:T.c[4], doom:T.c[5], glow:T.c[7]} : {paper:"#08090B", line:"#23261F", muted:"#96988E", ink:"#EDEAE2", doom:"#33D65C", glow:"#4CFF6E"};
+    const pick = (k, dk) => D[dk || k];
     const paper = pick("paper"), line = pick("line"), muted = pick("muted"), ink = pick("ink");
     const doom = pick("doom"), glow = pick("doom-glow", "glow");
     const DISP = '"Big Shoulders Display","Arial Narrow",sans-serif', BODY = '"IBM Plex Sans",-apple-system,"Segoe UI",sans-serif';
@@ -2348,19 +2364,10 @@
     const signedIn = !!user;
     authBtn.hidden = signedIn;
     authUser.hidden = !signedIn;
+    document.getElementById("prof-btn").hidden = signedIn;   // the account chip now carries the profile
     if(!signedIn) return;
-    const name = user.displayName || user.email || "You";
-    document.getElementById("auth-name").textContent = name.split(" ")[0];
-    document.getElementById("am-name").textContent = name;
-    document.getElementById("am-email").textContent = user.email || "";
-    const av = document.getElementById("auth-avatar");
-    av.textContent = "";
-    if(user.photoURL){
-      const img = document.createElement("img");
-      img.src = user.photoURL; img.alt = ""; img.referrerPolicy = "no-referrer";
-      img.onerror = ()=>{ av.textContent = name[0].toUpperCase(); };
-      av.appendChild(img);
-    } else { av.textContent = name[0].toUpperCase(); }
+    document.getElementById("am-email").textContent = user.email || user.displayName || "";
+    updateChip();
   }
 
   function onUser(user){
@@ -2421,15 +2428,14 @@
   // ---------- Account dropdown: website theme (per profile) + light/dark ----------
   const authTrigger = document.getElementById("auth-trigger"), authMenu = document.getElementById("auth-menu"), amDyn = document.getElementById("am-dyn");
   function drawAuthMenu(){
-    const p = curProf(), locked = !!(THEMES[p.av] || THEMES.default).c;
-    const cur = document.documentElement.getAttribute("data-theme") || "";
+    const p = curProf(), cur = document.documentElement.getAttribute("data-theme") || "";
+    document.getElementById("am-hi").textContent = "Hi, " + p.name;
     const picks = Object.keys(THEMES).map(k => `<button type="button" class="pick${k === p.av ? " active" : ""}" data-k="${k}">${avHTML(k)}<span>${esc(THEMES[k].n)}</span></button>`).join("");
-    const segs = [["", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-m="${v}"${!locked && cur === v ? ' class="active"' : ""}${locked ? " disabled" : ""}>${l}</button>`).join("");
-    amDyn.innerHTML = `<div class="am-label">Website theme <span>&middot; ${esc(p.name)}</span></div>
+    const segs = [["", "System"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-m="${v}"${cur === v ? ' class="active"' : ""}>${l}</button>`).join("");
+    amDyn.innerHTML = `<div class="am-label">Website theme</div>
       <div class="picks am-picks">${picks}</div>
       <div class="am-label">Appearance</div>
-      <div class="am-seg">${segs}</div>
-      ${locked ? '<div class="am-note">Light / dark applies to the Doomsday theme. Character themes are always dark.</div>' : ""}`;
+      <div class="am-seg">${segs}</div>`;
   }
   function placeAuthMenu(){
     const r = authTrigger.getBoundingClientRect(), w = Math.min(310, window.innerWidth - 24);
@@ -2445,6 +2451,7 @@
   ["resize", "scroll"].forEach(ev => window.addEventListener(ev, ()=>{ if(!authMenu.hidden) placeAuthMenu(); }, {passive:true}));
   authMenu.addEventListener("click", e => {
     const pk = e.target.closest(".pick"), seg = e.target.closest("[data-m]");
+    if(e.target.closest("#am-switch")){ closeAuthMenu(); editing = false; gateRequired = false; drawGate(); return; }
     if(pk){
       const p = curProf();
       p.av = pk.dataset.k; p.pristine = false;
@@ -2452,9 +2459,10 @@
       cloudPush(true);                       // theme follows the account
       drawAuthMenu(); return;
     }
-    if(seg && !seg.disabled){
+    if(seg){
       const v = seg.dataset.m || null;
       applyTheme(v);
+      applyChar(curProf().av);
       try{ localStorage.setItem("doomsday-theme", v || ""); }catch(err){}
       drawAuthMenu();
     }
