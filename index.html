@@ -973,6 +973,21 @@
   .am-out{ width:100%; margin-top:14px; padding:9px; background:none; border:1px solid var(--line); border-radius:999px; color:var(--muted); font:600 13px var(--font-body); cursor:pointer; }
   .am-out:hover{ color:#E5484D; border-color:#E5484D; }
   .prof-btn[hidden]{ display:none; }
+  .trailer-btn{ display:inline-flex; align-items:center; gap:7px; font:600 12.5px var(--font-body); color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:5px 13px 5px 10px; cursor:pointer; transition:border-color .2s ease; }
+  .trailer-btn:hover, .trailer-btn:focus-visible{ border-color:var(--doom); outline:none; }
+  .trailer-btn .tr-ic{ color:var(--doom); font-size:11px; }
+  .trailer{ position:fixed; inset:0; z-index:1450; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; background:rgba(0,0,0,.9); padding:24px; }
+  .trailer[hidden]{ display:none; }
+  .trailer-frame{ width:min(960px,92vw); aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .trailer-frame iframe{ width:100%; height:100%; border:0; display:block; }
+  .trailer-close{ position:absolute; top:14px; right:18px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer; opacity:.8; }
+  .trailer-close:hover{ opacity:1; }
+  .trailer-alt{ color:#B9BBB2; font:500 12.5px var(--font-body); text-decoration:underline; }
+  @media (max-width:560px){
+    .trailer-btn{ width:30px; height:30px; padding:0; justify-content:center; }
+    .trailer-btn .tr-txt{ display:none; }
+    .trailer-btn .tr-ic{ font-size:12px; }
+  }
   .gate-load{ display:flex; gap:10px; }
   .gate-load i{ width:10px; height:10px; border-radius:50%; background:var(--doom); animation:pulse-dot 1.1s ease-in-out infinite; }
   .gate-load i:nth-child(2){ animation-delay:.18s; } .gate-load i:nth-child(3){ animation-delay:.36s; }
@@ -1245,6 +1260,7 @@
     <div class="brand">CINE<em>PHOBIC</em></div>
     <div class="mast-right">
       <div class="live-pill"><span class="live-dot"></span>Tracking live</div>
+      <button class="trailer-btn" id="trailer-btn" type="button" title="Watch the Avengers: Doomsday trailer"><span class="tr-ic" aria-hidden="true">&#9654;</span><span class="tr-txt">Watch trailer</span></button>
       <button class="auth-btn" id="auth-btn" type="button">
         <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         <span>Sign in</span>
@@ -1259,6 +1275,7 @@
       </div>
       <button class="prof-btn" id="prof-btn" type="button" title="Switch profile"><span id="prof-av"></span><span id="prof-name"></span></button>
       <button class="theme-btn" id="theme-btn" title="Toggle theme">◐</button>
+      <button class="theme-btn" id="sound-btn" type="button" title="Sound on/off" aria-pressed="true">&#128266;</button>
     </div>
   </div>
 
@@ -1310,6 +1327,11 @@
 
   <div id="milestone-slot"></div>
   <div id="gate-slot"></div>
+  <div class="trailer" id="trailer-modal" hidden role="dialog" aria-modal="true" aria-label="Avengers: Doomsday trailer">
+    <button class="trailer-close" id="trailer-close" type="button" aria-label="Close trailer">&#10005;</button>
+    <div class="trailer-frame" id="trailer-frame"></div>
+    <a class="trailer-alt" href="https://youtu.be/X1aFkAkFASk" target="_blank" rel="noopener">Open on YouTube</a>
+  </div>
   <div class="auth-menu" id="auth-menu" hidden>
     <div class="am-head"><strong id="am-hi"></strong><button class="am-switch" id="am-switch" type="button">Switch profile</button></div>
     <div id="am-dyn"></div>
@@ -1670,7 +1692,7 @@
     if(q("#gate-close")){ closeGate(); return; }
     if(q("#gate-manage")){ editing = !editing; drawGate(); return; }
     const pick = q(".pick");
-    if(pick){ edAv = pick.dataset.k; const nm = document.getElementById("ed-name").value; drawEditor(); document.getElementById("ed-name").value = nm; return; }
+    if(pick){ if(pick.dataset.k === "default" && edAv !== "default" && window.sfx) window.sfx.doom(); edAv = pick.dataset.k; const nm = document.getElementById("ed-name").value; drawEditor(); document.getElementById("ed-name").value = nm; return; }
     if(q("#ed-cancel")){ drawGate(); return; }
     if(q("#ed-save")){
       const name = document.getElementById("ed-name").value.trim() || THEMES[edAv].n;
@@ -2456,6 +2478,7 @@
     if(e.target.closest("#am-switch")){ closeAuthMenu(); editing = false; gateRequired = false; drawGate(); return; }
     if(pk){
       const p = curProf();
+      if(pk.dataset.k === "default" && p.av !== "default" && window.sfx) window.sfx.doom();
       p.av = pk.dataset.k; p.pristine = false;
       persist(); applyChar(p.av); updateChip(); render();
       cloudPush(true);                       // theme follows the account
@@ -2511,6 +2534,85 @@
   if(fbConfigured){
     (window.introDone || Promise.resolve()).then(()=> ensureFirebase()).catch(err => console.error(err));
   }
+</script>
+
+<script>
+  // ---------- Sound (clips live in assets/audio/) + trailer ----------
+  (function(){
+    const BASE = "assets/audio/", V = "?v=1";
+    const CLIPS = { victor:"victor.mp3", ambience:"ambience.mp3", doom:"i-am-doom.mp3" };
+    const VOL   = { victor:.9, ambience:.45, doom:1 };      // the background bed sits lower than the voice lines
+    const BED_DELAY = 10000;                                // ambience starts 10s after the opening line
+    const soundBtn = document.getElementById("sound-btn"), modal = document.getElementById("trailer-modal"), frame = document.getElementById("trailer-frame");
+    let enabled = true;
+    try{ enabled = localStorage.getItem("doomsday-sound") !== "off"; }catch(e){}
+
+    const els = {};
+    Object.keys(CLIPS).forEach(k=>{
+      const a = new Audio(BASE + CLIPS[k] + V);
+      a.preload = "auto"; a.loop = false; a.volume = VOL[k];
+      els[k] = a;
+    });
+    const trailerOpen = () => !modal.hidden;
+    function stopAll(){ Object.keys(els).forEach(k=>{ try{ els[k].pause(); els[k].currentTime = 0; }catch(e){} }); }
+    // resolves true if the clip started, false if it was skipped/blocked/missing
+    function play(k){
+      const a = els[k];
+      if(!enabled || !a || trailerOpen()) return Promise.resolve(false);
+      try{ a.currentTime = 0; }catch(e){}
+      try{
+        const pr = a.play();
+        return pr && pr.then ? pr.then(()=> true, ()=> false) : Promise.resolve(true);
+      }catch(e){ return Promise.resolve(false); }
+    }
+
+    // Opening sequence: runs ONCE per site open. Browsers refuse sound before the first tap/click, so if the
+    // first attempt is blocked we retry on the first interaction; after it has started it can never run again.
+    let openingDone = false, bedTimer = null;
+    const GESTURES = ["pointerdown", "keydown", "touchend"];
+    function disarm(){ GESTURES.forEach(g => window.removeEventListener(g, runOpening, true)); }
+    function runOpening(){
+      if(openingDone) return;
+      if(!enabled){ openingDone = true; disarm(); return; }
+      play("victor").then(ok=>{
+        if(openingDone) return;
+        if(ok){
+          openingDone = true; disarm();
+          bedTimer = setTimeout(()=> play("ambience"), BED_DELAY);
+        }
+      });
+    }
+    function armOpening(){
+      runOpening();
+      if(!openingDone) GESTURES.forEach(g => window.addEventListener(g, runOpening, true));
+    }
+    (window.introDone || Promise.resolve()).then(armOpening);
+
+    // "I AM DOOM" when the Doomsday theme is picked
+    window.sfx = { doom(){ play("doom"); } };
+
+    // Sound on/off
+    function syncSoundBtn(){ soundBtn.innerHTML = enabled ? "&#128266;" : "&#128263;"; soundBtn.setAttribute("aria-pressed", String(enabled)); }
+    syncSoundBtn();
+    soundBtn.addEventListener("click", ()=>{
+      enabled = !enabled;
+      try{ localStorage.setItem("doomsday-sound", enabled ? "on" : "off"); }catch(e){}
+      if(!enabled){ stopAll(); clearTimeout(bedTimer); }
+      syncSoundBtn();
+    });
+
+    // Trailer
+    function openTrailer(){
+      stopAll(); clearTimeout(bedTimer);
+      frame.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/X1aFkAkFASk?autoplay=1&rel=0&playsinline=1" title="Avengers: Doomsday trailer" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+      modal.hidden = false;
+    }
+    function closeTrailer(){ modal.hidden = true; frame.innerHTML = ""; }   // removing the iframe stops the video
+    document.getElementById("trailer-btn").addEventListener("click", openTrailer);
+    document.getElementById("trailer-close").addEventListener("click", closeTrailer);
+    modal.addEventListener("click", e=>{ if(e.target === modal) closeTrailer(); });
+    document.addEventListener("keydown", e=>{ if(e.key === "Escape" && !modal.hidden) closeTrailer(); });
+  })();
 </script>
 
 </body>
