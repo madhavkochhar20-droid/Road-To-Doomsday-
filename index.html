@@ -1518,6 +1518,8 @@
   const STORE_KEY = "doomsday-profiles", MAXP = 5;
   const uid = () => Math.random().toString(36).slice(2, 9);
   const slim = p => ({id:p.id, name:p.name, av:p.av, w:[...(p.w || [])].map(Number).sort((a,b)=>a-b)});
+  // what goes to the cloud: same as slim, plus a flag on the profile that is currently active
+  const cloudShape = p => ({...slim(p), ...(p.id === store.active ? {a:1} : {})});
   function loadStore(){
     try{
       const x = JSON.parse(localStorage.getItem(STORE_KEY));
@@ -1538,7 +1540,7 @@
     if(typeof cloudPush === "function") cloudPush();   // no-op unless signed in
   }
   function applyStore(x){
-    store = {active:x.active, profiles:x.profiles.map(p => ({...p, w:(p.w || []).map(Number)}))};
+    store = {active:x.active, profiles:x.profiles.map(({a, ...p}) => ({...p, w:(p.w || []).map(Number)}))};
     if(!store.profiles.some(p => p.id === store.active)) store.active = store.profiles[0].id;
     persist();
     watched.clear(); curProf().w.forEach(n => watched.add(n));
@@ -1570,7 +1572,7 @@
   function drawGate(){
     gateSlot.innerHTML = `<div class="gate" role="dialog" aria-modal="true" aria-label="Choose profile">
       <button class="gate-close" id="gate-close" aria-label="Close">✕</button>
-      <h2>${editing ? "Manage profiles" : "Who's watching?"}</h2>
+      <h2>${editing ? "Manage profiles" : "Who's Here?"}</h2>
       <div class="gate-grid">
         ${store.profiles.map(p => `<button class="tile" data-id="${p.id}">${avHTML(p.av)}${editing ? '<span class="pen">✎</span>' : ""}<span>${esc(p.name)}</span></button>`).join("")}
         ${store.profiles.length < MAXP ? '<button class="tile" data-add="1"><span class="pav plus">+</span><span>Add profile</span></button>' : ""}
@@ -1596,6 +1598,7 @@
     persist();
     watched.clear(); curProf().w.forEach(n => watched.add(Number(n)));
     applyChar(curProf().av); updateChip(); render();
+    if(typeof cloudPush === "function") cloudPush();   // remember the active profile (and its theme) on the account
   }
   gateSlot.addEventListener("click", e=>{
     const t = e.target, q = sel => t.closest(sel);
@@ -1631,7 +1634,7 @@
   document.getElementById("prof-btn").addEventListener("click", drawGate);
   applyChar(curProf().av);
   updateChip();
-  // Disney+-style "Who's watching?" screen, shown after the intro when there is more than one profile
+  // Disney+-style "Who's Here?" screen, shown after the intro when there is more than one profile
   (window.introDone || Promise.resolve()).then(()=>{ if(store.profiles.length > 1) drawGate(); });
 
 
@@ -2315,8 +2318,13 @@
         // First load after sign-in: merge guest progress/profiles into the saved account data
         first = false;
         const merged = mergeProfiles(remote, store.profiles);
-        applyStore({active:store.active, profiles:merged});
-        if(!d.profiles || JSON.stringify(merged.map(slim)) !== JSON.stringify(remote.map(slim))) cloudPush(true); else setSync("ok");
+        // Use the profile (and so the theme) that was last active on the account, unless this browser already has its own choice
+        const remoteActive = (remote.find(p => p.a) || {}).id;
+        const guestOnly = store.profiles.length === 1 && store.profiles[0].pristine;
+        let active = store.active;
+        if(remoteActive && merged.some(p => p.id === remoteActive) && (guestOnly || !merged.some(p => p.id === store.active))) active = remoteActive;
+        applyStore({active, profiles:merged});
+        if(!d.profiles || JSON.stringify(merged.map(slim)) !== JSON.stringify(remote.map(slim)) || remoteActive !== store.active) cloudPush(true); else setSync("ok");
       } else if(!snap.metadata.hasPendingWrites && remote.length){
         if(JSON.stringify(remote.map(slim)) === JSON.stringify(store.profiles.map(slim))){ setSync("ok"); return; }
         applyStore({active:store.active, profiles:remote});   // change made on another device/tab
@@ -2335,7 +2343,7 @@
     clearTimeout(pushTimer);
     const run = ()=>{
       fbDb.collection("users").doc(cloudUser.uid)
-        .set({ profiles: store.profiles.map(slim), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+        .set({ profiles: store.profiles.map(cloudShape), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
         .then(()=> setSync("ok"))
         .catch(err=>{ console.error(err); setSync("err"); });
     };
