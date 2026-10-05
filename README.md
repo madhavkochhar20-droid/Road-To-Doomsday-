@@ -40,7 +40,7 @@ Until `firebase-config.js` is filled in, the Sign in button shows a "not set up 
 
 ## Character themes & profiles
 
-Tap the profile chip in the header to open the Disney+-style "Who's watching?" screen. Each profile
+Tap the profile chip in the header to open the Disney+-style "Who's Here?" screen. Each profile
 (up to 5) has its own name, character avatar and watch progress. The avatar's character is also the
 interface theme (Spider-Man, Iron Man, Black Panther, Thor, Captain America, Hulk): palette, background
 pattern, hero tagline and the emoji burst all change. Add more themes in the `THEMES` object.
