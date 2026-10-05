@@ -1168,7 +1168,8 @@
   .theme-btn[hidden]{ display:none; }
   .prof-btn{ display:inline-flex; align-items:center; gap:7px; font:600 12.5px var(--font-body); color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:3px 12px 3px 3px; cursor:pointer; }
   .prof-btn:hover, .prof-btn:focus-visible{ border-color:var(--doom); outline:none; }
-  .pav{ display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; font-size:14px; color:#fff; flex-shrink:0; }
+  .pav{ display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; font-size:14px; color:#fff; flex-shrink:0; overflow:hidden; }
+  .pav img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
   .gate{ position:fixed; inset:0; z-index:1400; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; background:var(--paper); padding:24px; overflow:auto; text-align:center; }
   .gate h2{ font-family:var(--font-display); font-weight:700; font-size:clamp(34px,6vw,56px); margin:0; }
   .gate-grid{ display:flex; flex-wrap:wrap; gap:22px; justify-content:center; }
@@ -1521,18 +1522,18 @@
   // c = [paper, surface, line, muted, ink, accent, accent-dim, accent-glow, secondary, secondary-dim]
   const VARS = ["paper","surface","line","muted","ink","doom","doom-dim","doom-glow","ember","ember-dim"];
   const THEMES = {
-    default:        {n:"Doomsday", e:"☠️"},
-    spiderman:      {n:"Spider-Man", e:"🕷️", b:"🕸️", pat:"web", mark:"THWIP!", kick:"Swinging through the MCU, one film at a time",
+    default:        {n:"Doomsday", e:"☠️", img:"assets/avatars/default.jpg?v=1"},
+    spiderman:      {n:"Spider-Man", e:"🕷️", img:"assets/avatars/spiderman.jpg?v=1", b:"🕸️", pat:"web", mark:"THWIP!", kick:"Swinging through the MCU, one film at a time",
                      c:["#0A0A14","#15152B","#2A2A52","#9C9AC8","#F2F0FF","#E8272E","#2B1020","#FF5058","#3E7BFF","#14224A"]},
     ironman:        {n:"Iron Man", e:"🤖", b:"⚙️", pat:"hex", mark:"SUIT UP.", kick:"Genius, billionaire, your watch guide",
                      c:["#0B0807","#1A1210","#3A2620","#B39A8C","#FFF1E0","#F2B32A","#33250A","#FFD25E","#E5412D","#3A1612"]},
-    blackpanther:   {n:"Black Panther", e:"🐾", b:"🐾", pat:"diag", mark:"WAKANDA FOREVER", kick:"Claim the throne of the whole saga",
+    blackpanther:   {n:"Black Panther", e:"🐾", img:"assets/avatars/blackpanther.jpg?v=1", b:"🐾", pat:"diag", mark:"WAKANDA FOREVER", kick:"Claim the throne of the whole saga",
                      c:["#08060D","#140F1F","#2C2342","#A79CC4","#F1EBFF","#9B6BFF","#1E1436","#BE9BFF","#C4C4D4","#23202E"]},
-    thor:           {n:"Thor", e:"⚡", b:"⚡", pat:"diag", mark:"BRING THE THUNDER", kick:"Only the worthy finish the watchlist",
+    thor:           {n:"Thor", e:"⚡", img:"assets/avatars/thor.jpg?v=1", b:"⚡", pat:"diag", mark:"BRING THE THUNDER", kick:"Only the worthy finish the watchlist",
                      c:["#070B14","#0F1626","#22304F","#94A6C9","#EAF2FF","#4DB8FF","#0E2238","#8BD6FF","#E8B84A","#3A2E10"]},
-    captainamerica: {n:"Captain America", e:"🛡️", b:"⭐", pat:"stars", mark:"ASSEMBLE", kick:"Stars, stripes and a very long watchlist",
+    captainamerica: {n:"Captain America", e:"🛡️", img:"assets/avatars/captainamerica.jpg?v=1", b:"⭐", pat:"stars", mark:"ASSEMBLE", kick:"Stars, stripes and a very long watchlist",
                      c:["#070B1A","#0F1730","#243564","#9AA7D1","#F4F6FF","#3E7BFF","#0F2150","#78A4FF","#E02F3B","#3D1218"]},
-    hulk:           {n:"Hulk", e:"💢", b:"💢", pat:"hex", mark:"HULK SMASH", kick:"Rage-watch responsibly",
+    hulk:           {n:"Hulk", e:"💢", img:"assets/avatars/hulk.jpg?v=1", b:"💢", pat:"hex", mark:"HULK SMASH", kick:"Rage-watch responsibly",
                      c:["#070D08","#101A12","#23382A","#93B09A","#EAF7EC","#4CD964","#10301A","#8AFF9F","#9B59E6","#2A1740"]},
   };
   const PAT = {
@@ -1612,7 +1613,8 @@
   const esc = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   function avHTML(av){
     const T = THEMES[av] || THEMES.default, c = T.c;
-    return `<span class="pav" style="background:linear-gradient(135deg,${c ? c[5] : "#1FA84A"},${c ? c[8] : "#D9631E"})">${T.e}</span>`;
+    const inner = T.img ? `<img src="${T.img}" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode(this.dataset.e))" data-e="${T.e}">` : T.e;
+    return `<span class="pav" style="background:linear-gradient(135deg,${c ? c[5] : "#1FA84A"},${c ? c[8] : "#D9631E"})">${inner}</span>`;
   }
   function updateChip(){
     const p = curProf();
