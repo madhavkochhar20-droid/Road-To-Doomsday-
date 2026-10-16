@@ -4,6 +4,8 @@
 //  3. Countdown clock           - tick+echo+fade cycle looping in step with the countdown, stops when it ends (Dec 18)
 //  4. Avengers: Doomsday lock   - cannot be ticked as watched until the countdown is over
 //  5. VisionQuest              - added to the list (Disney+, Oct 14 2026)
+//  7. "Select all" button      - marks every available title as watched in one click (Doomsday stays locked)
+//  7. Select all / Shift+click  - mark everything listed (or a range) as watched in one go
 //  6. Reveal video             - when only Doomsday is left: black screen, logo + "12.18.26 IS DOOMSDAY" (once per session)
 // Everything respects the 🔊 on/off button and stays quiet while the trailer is open.
 // Timings are in seconds; edit start/end below to change a clip.
@@ -19,7 +21,7 @@
   };                                                                  // doomsday: no clip here (its own sound system)
   const VOL = 0.85, FADE = 0.25;   // volume, and fade-out length at the end of the clip (seconds)
 
-  let el = null, timer = null, cine = false;
+  let el = null, timer = null, cine = false, lastClickId = null;
   const soundOn = () => { try{ return localStorage.getItem("doomsday-sound") !== "off"; }catch(e){ return true; } };
   const trailerOpen = () => { const m = document.getElementById("trailer-modal"); return !!(m && !m.hidden); };
 
@@ -253,6 +255,12 @@
         if(typeof toast === "function") toast("Avengers: Doomsday unlocks on " + unlockLabel() + ", when the countdown hits zero.");
         return;
       }
+      if(e.shiftKey && lastClickId !== null && lastClickId !== id && visibleIds().includes(lastClickId)){
+        e.stopImmediatePropagation(); e.preventDefault();   // Shift+click: mark everything between the two titles
+        rangeToggle(lastClickId, id); lastClickId = id; pend = null;
+        return;
+      }
+      lastClickId = id;
       pend = {id, was: typeof watched !== "undefined" && watched.has(id)};
     }, true);
     tl.addEventListener("click", () => {              // bubble: after the page's handler. Doomsday itself can't be ticked,
@@ -329,6 +337,47 @@
     const pr = v.play();
     if(pr && pr.catch) pr.catch(() => { v.muted = true; const p2 = v.play(); if(p2 && p2.catch) p2.catch(close); });
   }
+
+  // ---------- 7) Select all + Shift+click range ----------
+  // "Select all" marks every title that is currently listed (respects the phase / search / Essential / MCU-only filters).
+  // Avengers: Doomsday is never included while it is locked. Click one title, then Shift+click another to mark everything between them.
+  const visibleIds = () => [...document.querySelectorAll("#timeline .entry")]
+    .map(r => Number(r.dataset.id)).filter(id => !(id === DOOM_ID && locked()));
+  function applyBulk(ids, on){
+    const wasOnly = onlyDoomLeft();
+    ids.forEach(id => { if(on) watched.add(id); else watched.delete(id); });
+    saveWatched(); render();
+    if(on && !wasOnly && locked() && onlyDoomLeft()) playReveal();   // that completed everything except Doomsday
+  }
+  function rangeToggle(a, b){
+    const ids = visibleIds(), i = ids.indexOf(a), j = ids.indexOf(b);
+    if(i < 0 || j < 0) return;
+    applyBulk(ids.slice(Math.min(i, j), Math.max(i, j) + 1), !watched.has(b));
+  }
+  (function(){
+    const bar = document.querySelector(".progress-summary"), rst = document.getElementById("progress-reset");
+    if(!bar || !tl) return;
+    const css = document.createElement("style");
+    css.textContent = ".share-btn:disabled{opacity:.45;cursor:default}#timeline .entry .title{user-select:none;-webkit-user-select:none}";
+    document.head.appendChild(css);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "share-btn"; b.id = "selall-btn";
+    b.title = "Mark everything listed as watched. Tip: click one title, then Shift+click another to mark everything between them.";
+    bar.insertBefore(b, rst && rst.parentNode === bar ? rst : null);
+    function sync(){
+      const ids = visibleIds(), all = ids.length > 0 && ids.every(id => watched.has(id));
+      b.textContent = (all ? "Unselect all (" : "Select all (") + ids.length + ")";
+      b.disabled = ids.length === 0;
+    }
+    b.addEventListener("click", () => {
+      const ids = visibleIds(); if(!ids.length) return;
+      const all = ids.every(id => watched.has(id));
+      if(!confirm((all ? "Mark these " + ids.length + " titles as NOT watched?" : "Mark these " + ids.length + " titles as watched?"))) return;
+      applyBulk(ids, !all);
+    });
+    new MutationObserver(sync).observe(tl, {childList:true});
+    sync();
+  })();
 
   if(!enforce()) decorate();
 })();
