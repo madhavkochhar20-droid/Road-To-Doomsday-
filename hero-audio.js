@@ -3,6 +3,8 @@
 //  2. Ambience only when idle   - the background bed starts after ~12s of no activity, stops the moment the cursor moves
 //  3. Countdown clock           - tick+echo+fade cycle looping in step with the countdown, stops when it ends (Dec 18)
 //  4. Avengers: Doomsday lock   - cannot be ticked as watched until the countdown is over
+//  5. VisionQuest              - added to the list (Disney+, Oct 14 2026)
+//  6. Reveal video             - when only Doomsday is left: black screen, logo + "12.18.26 IS DOOMSDAY" (once per session)
 // Everything respects the 🔊 on/off button and stays quiet while the trailer is open.
 // Timings are in seconds; edit start/end below to change a clip.
 (function(){
@@ -17,7 +19,7 @@
   };                                                                  // doomsday: no clip here (its own sound system)
   const VOL = 0.85, FADE = 0.25;   // volume, and fade-out length at the end of the clip (seconds)
 
-  let el = null, timer = null;
+  let el = null, timer = null, cine = false;
   const soundOn = () => { try{ return localStorage.getItem("doomsday-sound") !== "off"; }catch(e){ return true; } };
   const trailerOpen = () => { const m = document.getElementById("trailer-modal"); return !!(m && !m.hidden); };
 
@@ -28,7 +30,7 @@
   function play(av){
     stop();
     const c = CLIPS[av];
-    if(!c || !soundOn() || trailerOpen()) return;
+    if(!c || !soundOn() || trailerOpen() || cine) return;
     if(window.__bedHold) window.__bedHold();                       // ambience steps aside while a profile clip plays
     const a = new Audio(BASE + c.file + V);
     a.preload = "auto"; a.volume = VOL;
@@ -122,7 +124,7 @@
   setInterval(() => {
     if(!bed || !bedWanted) return;
     if(Date.now() - lastAct < IDLE_MS) return;
-    if(!soundOn() || trailerOpen() || el || (gate && gate.firstChild)) return;
+    if(!soundOn() || trailerOpen() || cine || el || (gate && gate.firstChild)) return;
     bedWanted = false;
     const pr = nativePlay.call(bed);
     if(pr && pr.catch) pr.catch(() => { bedWanted = true; lastAct = Date.now(); });
@@ -174,7 +176,7 @@
     loopSrc = s;
     return true;
   }
-  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el;
+  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el && !cine;
   setInterval(() => {                                  // mute / unmute without losing the beat; stop when the countdown ends
     if(!countdownOn()){ stopLoop(); return; }
     const on = tickAllowed();
@@ -257,8 +259,7 @@
       if(!pend) return;                               // so "ready for Doomsday" = every other MCU title watched
       const p = pend; pend = null;
       try{
-        if(!p.was && watched.has(p.id) && locked() && typeof showMilestone === "function"
-           && MOVIES.filter(m => m.p !== 7 && m.i !== DOOM_ID).every(m => watched.has(m.i))) showMilestone();
+        if(!p.was && watched.has(p.id) && locked() && onlyDoomLeft()) playReveal();   // last other title ticked: reveal
       }catch(e){}
     });
   }
@@ -266,5 +267,58 @@
   setInterval(() => {                                  // countdown just ended while the page is open: unlock live
     if(wasLocked && !locked()){ wasLocked = false; if(typeof render === "function") render(); }
   }, 1000);
+  // ---------- 5) VisionQuest (Disney+, premiered Oct 14 2026) ----------
+  // Added here so index.html needs no change. If you later add it to MOVIES in index.html, this is skipped.
+  // i:50.5 = in-universe slot right before Avengers: Doomsday. imdb:null shows "TBA" until you put a rating in.
+  try{
+    if(typeof MOVIES !== "undefined" && !MOVIES.some(m => /^visionquest$/i.test(m.t))){
+      MOVIES.push({p:6, i:50.5, y:"2026", ry:2026, t:"VisionQuest",
+        d:"A rebuilt Vision searches for his memory and his humanity while Ultron, Jocasta and a bounty hunter close in on him.",
+        type:"series", ic:"👁️", rt:360, sk:false, imdb:null});
+      const nc = document.getElementById("mode-n-core"), na = document.getElementById("mode-n-all");
+      if(nc) nc.textContent = MOVIES.filter(m => m.p !== 7).length;
+      if(na) na.textContent = MOVIES.length;
+      if(typeof render === "function") render();
+    }
+  }catch(e){}
+
+  // ---------- 6) Reveal video: only Doomsday left -> black screen, logo, "12.18.26 IS DOOMSDAY" ----------
+  const REVEAL_URL = "assets/video/doomsday-reveal.mp4?v=1", REVEAL_KEY = "doomsday-reveal-seen";
+  const onlyDoomLeft = () => {
+    try{ return MOVIES.filter(m => m.p !== 7 && m.i !== DOOM_ID).every(m => watched.has(m.i)); }catch(e){ return false; }
+  };
+  function playReveal(){
+    if(cine) return;
+    try{ if(sessionStorage.getItem(REVEAL_KEY) === "1") return; sessionStorage.setItem(REVEAL_KEY, "1"); }catch(e){}   // once per session
+    cine = true;
+    stop(); if(window.__bedHold) window.__bedHold();                 // silence profile clip + ambience; clock mutes via tickAllowed()
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:3000;background:#000;opacity:0;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center";
+    const v = document.createElement("video");
+    v.playsInline = true; v.preload = "auto"; v.src = REVEAL_URL; v.muted = !soundOn(); v.volume = 0.9;
+    v.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000";
+    const sk = document.createElement("button");
+    sk.type = "button"; sk.textContent = "Skip ✕";
+    sk.style.cssText = "position:absolute;top:16px;right:18px;background:none;border:1px solid rgba(255,255,255,.35);color:#fff;font:600 12px 'IBM Plex Sans',sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer;opacity:.75";
+    ov.appendChild(v); ov.appendChild(sk); document.body.appendChild(ov);
+    const prevOv = document.documentElement.style.overflow; document.documentElement.style.overflow = "hidden";
+    let closed = false;
+    const onKey = e => { if(e.key === "Escape"){ e.stopPropagation(); close(); } };
+    function close(){
+      if(closed) return; closed = true;
+      document.removeEventListener("keydown", onKey, true);
+      ov.style.opacity = "0";
+      try{ v.pause(); }catch(e){}
+      setTimeout(() => { ov.remove(); document.documentElement.style.overflow = prevOv; cine = false; }, 550);
+    }
+    document.addEventListener("keydown", onKey, true);
+    sk.addEventListener("click", close);
+    v.addEventListener("ended", () => setTimeout(close, 1600));      // hold the last frame ("12.18.26 IS DOOMSDAY") a moment
+    v.addEventListener("error", close);
+    requestAnimationFrame(() => { ov.style.opacity = "1"; });
+    const pr = v.play();
+    if(pr && pr.catch) pr.catch(() => { v.muted = true; const p2 = v.play(); if(p2 && p2.catch) p2.catch(close); });
+  }
+
   if(!enforce()) decorate();
 })();
