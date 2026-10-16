@@ -284,12 +284,17 @@
 
   // ---------- 6) Reveal video: only Doomsday left -> black screen, logo, "12.18.26 IS DOOMSDAY" ----------
   const REVEAL_URL = "assets/video/doomsday-reveal.mp4?v=1", REVEAL_KEY = "doomsday-reveal-seen";
+  // Test without ticking everything: open the site as  yoursite.com/?reveal=1  and click anywhere on the page.
+  if(/[?&]reveal=1(&|$)/.test(location.search)){
+    const go = () => { ["pointerdown", "keydown"].forEach(g => window.removeEventListener(g, go, true)); playReveal(true); };
+    ["pointerdown", "keydown"].forEach(g => window.addEventListener(g, go, true));
+  }
   const onlyDoomLeft = () => {
     try{ return MOVIES.filter(m => m.p !== 7 && m.i !== DOOM_ID).every(m => watched.has(m.i)); }catch(e){ return false; }
   };
-  function playReveal(){
+  function playReveal(force){
     if(cine) return;
-    try{ if(sessionStorage.getItem(REVEAL_KEY) === "1") return; sessionStorage.setItem(REVEAL_KEY, "1"); }catch(e){}   // once per session
+    if(!force){ try{ if(sessionStorage.getItem(REVEAL_KEY) === "1") return; }catch(e){} }   // once per session
     cine = true;
     stop(); if(window.__bedHold) window.__bedHold();                 // silence profile clip + ambience; clock mutes via tickAllowed()
     const ov = document.createElement("div");
@@ -313,8 +318,13 @@
     }
     document.addEventListener("keydown", onKey, true);
     sk.addEventListener("click", close);
+    v.addEventListener("playing", () => { try{ sessionStorage.setItem(REVEAL_KEY, "1"); }catch(e){} });   // counts as "seen" only once it really plays
     v.addEventListener("ended", () => setTimeout(close, 1600));      // hold the last frame ("12.18.26 IS DOOMSDAY") a moment
-    v.addEventListener("error", close);
+    v.addEventListener("error", () => {
+      console.error("Reveal video failed to load: " + REVEAL_URL + " (check that assets/video/doomsday-reveal.mp4 exists)");
+      if(typeof toast === "function") toast("Reveal video not found. Check assets/video/doomsday-reveal.mp4");
+      close();
+    });
     requestAnimationFrame(() => { ov.style.opacity = "1"; });
     const pr = v.play();
     if(pr && pr.catch) pr.catch(() => { v.muted = true; const p2 = v.play(); if(p2 && p2.catch) p2.catch(close); });
