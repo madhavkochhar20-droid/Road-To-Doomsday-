@@ -5,6 +5,7 @@
 //  4. Avengers: Doomsday lock   - cannot be ticked as watched until the countdown is over
 //  5. VisionQuest              - added to the list (Disney+, Oct 14 2026)
 //  7. "Select all" button      - marks every available title as watched in one click (Doomsday stays locked)
+//  9. Sound order               - profile sound first, then the Victor line ~3s later; clock + ambience never talk over a voice
 //  7. Select all / Shift+click  - mark everything listed (or a range) as watched in one go
 //  8. Install as app (PWA)     - "Install CinePhobic" popup, manifest + service worker (files: manifest.webmanifest, sw.js, assets/icons/)
 //  6. Reveal video             - when only Doomsday is left: black screen, logo + "12.18.26 IS DOOMSDAY" (once per session)
@@ -22,7 +23,7 @@
   };                                                                  // doomsday: no clip here (its own sound system)
   const VOL = 0.85, FADE = 0.25;   // volume, and fade-out length at the end of the clip (seconds)
 
-  let el = null, timer = null, cine = false, lastClickId = null;
+  let el = null, timer = null, cine = false, lastClickId = null, pickedAt = 0;
   const soundOn = () => { try{ return localStorage.getItem("doomsday-sound") !== "off"; }catch(e){ return true; } };
   const trailerOpen = () => { const m = document.getElementById("trailer-modal"); return !!(m && !m.hidden); };
 
@@ -35,6 +36,7 @@
     const c = CLIPS[av];
     if(!c || !soundOn() || trailerOpen() || cine) return;
     if(window.__bedHold) window.__bedHold();                       // ambience steps aside while a profile clip plays
+    if(window.__voiceCut) window.__voiceCut();                     // Victor / I AM DOOM stop if they are still talking
     const a = new Audio(BASE + c.file + V);
     a.preload = "auto"; a.volume = VOL;
     try{ a.currentTime = c.start; }catch(e){}
@@ -73,8 +75,11 @@
     }, true);
     gate.addEventListener("click", () => {           // bubble: runs after the page's handler has switched the profile
       if(!pend) return;
-      play(pend.av || avOfProfile(pend.id));
-      pend = null;
+      const p = pend; pend = null;
+      const av = p.av || avOfProfile(p.id);
+      if(p.id) pickedAt = Date.now();                // a profile was really chosen (not just an avatar preview in the editor)
+      if(av === "default"){ if(p.id && window.sfx && window.sfx.doom) window.sfx.doom(); }   // Doomsday profile: I AM DOOM (the editor/menu already do this themselves)
+      else play(av);
     });
   }
 
@@ -99,8 +104,25 @@
   const nativePlay = HTMLMediaElement.prototype.play, nativePause = HTMLMediaElement.prototype.pause;
   let bed = null, bedWanted = false, lastAct = Date.now();
   const isBed = a => a instanceof HTMLAudioElement && /ambience/i.test(a.getAttribute("src") || "");
+  // Voice lines of the page itself (index.html): Victor = opening line, I AM DOOM = Doomsday theme.
+  const isVictor = a => a instanceof HTMLAudioElement && /victor/i.test(a.getAttribute("src") || "");
+  const isDoom   = a => a instanceof HTMLAudioElement && /i-am-doom/i.test(a.getAttribute("src") || "");
+  const VICTOR_GAP = 3000;                              // Victor starts this long (ms) after the profile sound has finished (2-5s range)
+  const voices = new Set();                             // voice elements that were started
+  const anyVoice = () => { for(const a of voices){ if(!a.paused && !a.ended) return true; } return false; };
+  let victorEl = null, victorHeld = false, victorReleased = false;
+  window.__voiceCut = () => { voices.forEach(a => { try{ nativePause.call(a); }catch(e){} }); };
   HTMLMediaElement.prototype.play = function(){
     if(isBed(this)){ bed = this; bedWanted = true; return Promise.resolve(); }
+    if(isVictor(this) && !victorReleased){
+      // The opening line must not talk over the profile sound: if "Who's Here?" is on screen, hold it until a profile
+      // is picked, then it plays after that profile's sound (see the timer below). The page is told "started" so it
+      // does not retry, and its 10s ambience timer still runs (ambience itself waits for Victor).
+      if(gate && gate.firstChild){ victorEl = this; victorHeld = true; return Promise.resolve(); }
+      victorReleased = true;
+    }
+    if(isDoom(this)){ stop(); }                         // a hero clip must not overlap I AM DOOM
+    if(isVictor(this) || isDoom(this)){ voices.add(this); }
     return nativePlay.apply(this, arguments);
   };
   HTMLMediaElement.prototype.pause = function(){
@@ -127,11 +149,44 @@
   setInterval(() => {
     if(!bed || !bedWanted) return;
     if(Date.now() - lastAct < IDLE_MS) return;
-    if(!soundOn() || trailerOpen() || cine || el || (gate && gate.firstChild)) return;
+    if(!soundOn() || trailerOpen() || cine || el || victorHeld || anyVoice() || (gate && gate.firstChild)) return;
     bedWanted = false;
     const pr = nativePlay.call(bed);
     if(pr && pr.catch) pr.catch(() => { bedWanted = true; lastAct = Date.now(); });
   }, 500);
+
+  // Held Victor line: after a profile was picked -> wait for that profile's sound to finish, then VICTOR_GAP, then play it.
+  // If "Who's Here?" closes without a pick (stale sign-in hint, one profile) -> play it after a short moment.
+  (function(){
+    let idleSince = 0, gateGone = 0;
+    function release(){
+      const a = victorEl; victorHeld = false; victorReleased = true;
+      if(!a || !soundOn() || trailerOpen() || cine) return;      // sound off / trailer open: just skip the line
+      try{ a.currentTime = 0; }catch(e){}
+      voices.add(a);
+      const pr = nativePlay.call(a);
+      if(pr && pr.catch) pr.catch(() => {                        // browser blocked it (no tap/click yet): play it on the first one
+        voices.delete(a);
+        const G = ["pointerdown", "keydown", "touchend"];
+        const again = () => {
+          G.forEach(g => window.removeEventListener(g, again, true));
+          if(!soundOn() || trailerOpen() || cine) return;
+          voices.add(a); const p2 = nativePlay.call(a); if(p2 && p2.catch) p2.catch(() => voices.delete(a));
+        };
+        G.forEach(g => window.addEventListener(g, again, true));
+      });
+    }
+    setInterval(() => {
+      if(!victorHeld) return;
+      const now = Date.now();
+      if(pickedAt){
+        if(el || anyVoice()){ idleSince = 0; return; }           // profile sound still playing
+        if(!idleSince) idleSince = now;
+        if(now - idleSince >= VICTOR_GAP) release();
+      } else if(gate && gate.firstChild){ gateGone = 0; }
+      else { if(!gateGone) gateGone = now; if(now - gateGone > 1200) release(); }
+    }, 200);
+  })();
 
   // ---------- 3) Countdown clock: the tick/echo/fade cycle loops continuously, locked to the countdown ----------
   // clock-tick.wav is ONE full cycle of your clock sound (tick -> echo -> fade), exactly 1.000s long, so it plays
@@ -179,7 +234,7 @@
     loopSrc = s;
     return true;
   }
-  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el && !cine;
+  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el && !cine && !anyVoice();   // never under a voice
   setInterval(() => {                                  // mute / unmute without losing the beat; stop when the countdown ends
     if(!countdownOn()){ stopLoop(); return; }
     const on = tickAllowed();
