@@ -381,16 +381,22 @@
   })();
 
   // ---------- 8) Install as an app (PWA) ----------
-  // Adds the web-app manifest, registers sw.js, and shows an "Install CinePhobic" popup once the intro is over and
-  // "Who's Here?" is closed. Android / Chrome / Edge: real Install button. iPhone / iPad: shows the Add-to-Home-Screen steps.
-  // Never shown when the app is already installed; "Not now" hides it for 7 days.
+  // Adds the web-app manifest, registers sw.js, and shows an "Install CinePhobic" popup to EVERYONE (guests too, no sign-in
+  // needed) a few seconds after the intro. If the browser has given us its install event the popup has a real Install button;
+  // if not (some phones hold it back), it shows the 1-line manual steps for that device and upgrades to the button as soon as
+  // the event arrives. Never shown when the app is already installed; "Not now" hides it for 7 days.
+  // Test it any time with  yoursite.com/?install=1  (ignores the 7-day hide).
   (function(){
     const DKEY = "cinephobic-install-dismissed", HIDE_DAYS = 7;
     const standalone = () => { try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }catch(e){ return false; } };
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const dismissed = () => { try{ const t = Number(localStorage.getItem(DKEY)); return !!t && Date.now() - t < HIDE_DAYS * 864e5; }catch(e){ return false; } };
     const remember = () => { try{ localStorage.setItem(DKEY, String(Date.now())); }catch(e){} };
-    let deferred = null, box = null, ticks = 0;
+    const UA = navigator.userAgent;
+    const kind = ios ? "ios" : /android/i.test(UA) ? "android" : (/Chrome\//.test(UA) && !/Firefox|OPR\/\d/.test(UA) ? "desktop" : null);   // null = Safari/Firefox desktop: no app install
+    const forced = /[?&]install=1(&|$)/.test(location.search);
+    if(forced){ try{ localStorage.removeItem(DKEY); }catch(e){} }
+    let deferred = null, box = null, ticks = 0, gateTicks = 0;
 
     // manifest + iOS "open like an app" tags (only added if the page does not already have them)
     if(!document.querySelector('link[rel="manifest"]')){
@@ -407,7 +413,7 @@
       if(document.readyState === "complete") reg(); else window.addEventListener("load", reg);
     }
 
-    window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; });   // keep it for our own button
+    window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; if(box) draw(); });   // keep it for our own button; upgrade an open popup
     window.addEventListener("appinstalled", () => {
       deferred = null; hide();
       if(typeof toast === "function") toast("CinePhobic installed. Open it from your home screen.");
@@ -415,7 +421,7 @@
 
     const css = document.createElement("style");
     css.textContent =
-      ".pwa-pop{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));z-index:1380;width:min(440px,calc(100vw - 24px));transform:translate(-50%,24px);opacity:0;"
+      ".pwa-pop{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));z-index:1420;width:min(440px,calc(100vw - 24px));transform:translate(-50%,24px);opacity:0;"
       + "transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .35s ease;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;"
       + "background:rgba(14,15,18,.96);color:#EDEAE2;border:1px solid rgba(51,214,92,.45);box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.4);"
       + "font:500 13px/1.35 'IBM Plex Sans',system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}"
@@ -435,18 +441,15 @@
       const b = box; box = null; b.classList.remove("on");
       setTimeout(() => b.remove(), 450);
     }
-    function show(){
-      if(box) return;
-      box = document.createElement("div");
-      box.className = "pwa-pop"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Install CinePhobic");
-      const text = deferred
-        ? "Add Road to Doomsday to your home screen. Opens full screen, like an app."
-        : "Tap the Share button, then “Add to Home Screen” to open it like an app.";
+    function draw(){
+      if(!box) return;
+      const steps = kind === "ios" ? "Tap the Share button, then “Add to Home Screen” to open it like an app."
+        : kind === "android" ? "Open the browser menu (⋮), then tap “Install app” or “Add to Home screen”."
+        : "Click the install icon in the address bar (or menu ⋮ → “Install CinePhobic”).";
+      const text = deferred ? "Add Road to Doomsday to your home screen. Opens full screen, like an app." : steps;
       box.innerHTML = '<img src="assets/icons/icon-192.png" alt="" width="46" height="46">'
         + '<div class="t"><b>Install CinePhobic</b><span class="s">' + text + '</span></div>'
         + '<div class="b">' + (deferred ? '<button type="button" class="go">Install</button>' : "") + '<button type="button" class="no">' + (deferred ? "Not now" : "Got it") + '</button></div>';
-      document.body.appendChild(box);
-      requestAnimationFrame(() => requestAnimationFrame(() => box && box.classList.add("on")));
       box.querySelector(".no").addEventListener("click", () => { remember(); hide(); });
       const go = box.querySelector(".go");
       if(go) go.addEventListener("click", () => {
@@ -458,15 +461,24 @@
         }catch(e){ remember(); }
       });
     }
+    function show(){
+      if(box) return;
+      box = document.createElement("div");
+      box.className = "pwa-pop"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Install CinePhobic");
+      document.body.appendChild(box);
+      draw();
+      requestAnimationFrame(() => requestAnimationFrame(() => box && box.classList.add("on")));
+    }
 
-    // wait for the intro to end and every other screen (Who's Here?, reveal video, trailer) to be closed, then show it
+    // After the intro: show it for everyone. Screens that need attention first (reveal video, trailer) hold it back;
+    // the "Who's Here?" screen holds it back for at most ~8s so a guest is never left without the popup.
     (window.introDone || Promise.resolve()).then(() => {
       const t = setInterval(() => {
-        if(standalone() || dismissed()){ clearInterval(t); return; }
-        if(!deferred && !ios) return;                       // browser has no install support (or not installable yet)
-        const busy = (gate && gate.firstChild) || cine || trailerOpen();
-        ticks = busy ? 0 : ticks + 1;
-        if(ticks >= 3){ clearInterval(t); show(); }         // ~3s of calm, then pop up
+        if(standalone() || (!forced && dismissed())){ clearInterval(t); return; }
+        if(!deferred && !kind && !forced) return;          // this browser cannot install apps at all
+        const gateOpen = !!(gate && gate.firstChild) && gateTicks++ < 8;
+        ticks = (gateOpen || cine || trailerOpen()) ? 0 : ticks + 1;
+        if(ticks >= 3){ clearInterval(t); show(); }        // ~3s of calm, then pop up
       }, 1000);
     });
   })();
