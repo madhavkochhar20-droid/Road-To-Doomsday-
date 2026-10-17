@@ -6,6 +6,7 @@
 //  5. VisionQuest              - added to the list (Disney+, Oct 14 2026)
 //  7. "Select all" button      - marks every available title as watched in one click (Doomsday stays locked)
 //  7. Select all / Shift+click  - mark everything listed (or a range) as watched in one go
+//  8. Install as app (PWA)     - "Install CinePhobic" popup, manifest + service worker (files: manifest.webmanifest, sw.js, assets/icons/)
 //  6. Reveal video             - when only Doomsday is left: black screen, logo + "12.18.26 IS DOOMSDAY" (once per session)
 // Everything respects the 🔊 on/off button and stays quiet while the trailer is open.
 // Timings are in seconds; edit start/end below to change a clip.
@@ -377,6 +378,97 @@
     });
     new MutationObserver(sync).observe(tl, {childList:true});
     sync();
+  })();
+
+  // ---------- 8) Install as an app (PWA) ----------
+  // Adds the web-app manifest, registers sw.js, and shows an "Install CinePhobic" popup once the intro is over and
+  // "Who's Here?" is closed. Android / Chrome / Edge: real Install button. iPhone / iPad: shows the Add-to-Home-Screen steps.
+  // Never shown when the app is already installed; "Not now" hides it for 7 days.
+  (function(){
+    const DKEY = "cinephobic-install-dismissed", HIDE_DAYS = 7;
+    const standalone = () => { try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }catch(e){ return false; } };
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const dismissed = () => { try{ const t = Number(localStorage.getItem(DKEY)); return !!t && Date.now() - t < HIDE_DAYS * 864e5; }catch(e){ return false; } };
+    const remember = () => { try{ localStorage.setItem(DKEY, String(Date.now())); }catch(e){} };
+    let deferred = null, box = null, ticks = 0;
+
+    // manifest + iOS "open like an app" tags (only added if the page does not already have them)
+    if(!document.querySelector('link[rel="manifest"]')){
+      const l = document.createElement("link"); l.rel = "manifest"; l.href = "manifest.webmanifest"; document.head.appendChild(l);
+    }
+    [["mobile-web-app-capable", "yes"], ["apple-mobile-web-app-capable", "yes"],
+     ["apple-mobile-web-app-title", "CinePhobic"], ["apple-mobile-web-app-status-bar-style", "black-translucent"]].forEach(([n, c]) => {
+      if(!document.querySelector('meta[name="' + n + '"]')){ const m = document.createElement("meta"); m.name = n; m.content = c; document.head.appendChild(m); }
+    });
+
+    // service worker (needs https, or localhost while testing)
+    if("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+      const reg = () => navigator.serviceWorker.register("sw.js").catch(() => {});
+      if(document.readyState === "complete") reg(); else window.addEventListener("load", reg);
+    }
+
+    window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; });   // keep it for our own button
+    window.addEventListener("appinstalled", () => {
+      deferred = null; hide();
+      if(typeof toast === "function") toast("CinePhobic installed. Open it from your home screen.");
+    });
+
+    const css = document.createElement("style");
+    css.textContent =
+      ".pwa-pop{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));z-index:1380;width:min(440px,calc(100vw - 24px));transform:translate(-50%,24px);opacity:0;"
+      + "transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .35s ease;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;"
+      + "background:rgba(14,15,18,.96);color:#EDEAE2;border:1px solid rgba(51,214,92,.45);box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.4);"
+      + "font:500 13px/1.35 'IBM Plex Sans',system-ui,sans-serif;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}"
+      + ".pwa-pop.on{transform:translate(-50%,0);opacity:1}"
+      + ".pwa-pop img{width:46px;height:46px;border-radius:11px;flex:none}"
+      + ".pwa-pop .t{min-width:0;flex:1}.pwa-pop b{display:block;font-size:14px;font-weight:700;letter-spacing:.01em}"
+      + ".pwa-pop span.s{display:block;color:#A9ABA1;margin-top:2px}"
+      + ".pwa-pop .b{display:flex;flex-direction:column;gap:6px;flex:none}"
+      + ".pwa-pop button{font:600 12px 'IBM Plex Sans',system-ui,sans-serif;border-radius:999px;padding:7px 14px;cursor:pointer;white-space:nowrap}"
+      + ".pwa-pop .go{background:#33D65C;color:#06120A;border:0}.pwa-pop .go:hover{background:#4CFF6E}"
+      + ".pwa-pop .no{background:none;color:#A9ABA1;border:1px solid rgba(255,255,255,.18)}.pwa-pop .no:hover{color:#EDEAE2}"
+      + "@media (prefers-reduced-motion:reduce){.pwa-pop{transition:opacity .2s}}";
+    document.head.appendChild(css);
+
+    function hide(){
+      if(!box) return;
+      const b = box; box = null; b.classList.remove("on");
+      setTimeout(() => b.remove(), 450);
+    }
+    function show(){
+      if(box) return;
+      box = document.createElement("div");
+      box.className = "pwa-pop"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Install CinePhobic");
+      const text = deferred
+        ? "Add Road to Doomsday to your home screen. Opens full screen, like an app."
+        : "Tap the Share button, then “Add to Home Screen” to open it like an app.";
+      box.innerHTML = '<img src="assets/icons/icon-192.png" alt="" width="46" height="46">'
+        + '<div class="t"><b>Install CinePhobic</b><span class="s">' + text + '</span></div>'
+        + '<div class="b">' + (deferred ? '<button type="button" class="go">Install</button>' : "") + '<button type="button" class="no">' + (deferred ? "Not now" : "Got it") + '</button></div>';
+      document.body.appendChild(box);
+      requestAnimationFrame(() => requestAnimationFrame(() => box && box.classList.add("on")));
+      box.querySelector(".no").addEventListener("click", () => { remember(); hide(); });
+      const go = box.querySelector(".go");
+      if(go) go.addEventListener("click", () => {
+        const ev = deferred; if(!ev) return;
+        deferred = null; hide();
+        try{
+          ev.prompt();
+          ev.userChoice.then(r => { if(!r || r.outcome !== "accepted") remember(); }).catch(() => {});
+        }catch(e){ remember(); }
+      });
+    }
+
+    // wait for the intro to end and every other screen (Who's Here?, reveal video, trailer) to be closed, then show it
+    (window.introDone || Promise.resolve()).then(() => {
+      const t = setInterval(() => {
+        if(standalone() || dismissed()){ clearInterval(t); return; }
+        if(!deferred && !ios) return;                       // browser has no install support (or not installable yet)
+        const busy = (gate && gate.firstChild) || cine || trailerOpen();
+        ticks = busy ? 0 : ticks + 1;
+        if(ticks >= 3){ clearInterval(t); show(); }         // ~3s of calm, then pop up
+      }, 1000);
+    });
   })();
 
   if(!enforce()) decorate();
