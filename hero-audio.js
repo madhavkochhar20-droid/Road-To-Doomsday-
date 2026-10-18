@@ -4,24 +4,26 @@
 //  3. Countdown clock           - tick+echo+fade cycle looping in step with the countdown, stops when it ends (Dec 18)
 //  4. Avengers: Doomsday lock   - cannot be ticked as watched until the countdown is over
 //  5. VisionQuest              - added to the list (Disney+, Oct 14 2026)
-//  7. "Select all" button      - marks every available title as watched in one click (Doomsday stays locked)
+//  10. My Progress button       - progress tracker + Share progress + Select all + Reset in ONE highlighted button
 //  9. Sound order               - profile sound first, then the Victor line ~3s later; clock + ambience never talk over a voice
-//  7. Select all / Shift+click  - mark everything listed (or a range) as watched in one go
+//  7. Select all / Shift+click  - mark everything listed (or a range between two titles) as watched
 //  8. Install as app (PWA)     - "Install CinePhobic" popup, manifest + service worker (files: manifest.webmanifest, sw.js, assets/icons/)
 //  6. Reveal video             - when only Doomsday is left: black screen, logo + "12.18.26 IS DOOMSDAY" (once per session)
 // Everything respects the 🔊 on/off button and stays quiet while the trailer is open.
-// Timings are in seconds; edit start/end below to change a clip.
 (function(){
-  const BASE = "assets/audio/", V = "?v=1";
+  const BASE = "assets/audio/", CLIP_BASE = BASE + "clips/", V = "?v=2";
+  // Each file in assets/audio/clips/ is your original clip already cut to your timings (spiderman 0:01-0:04, thor 1:12-1:14,
+  // captainamerica 0:37-0:39, ironman 0:40-0:49, blackpanther 0:02-0:04, hulk 0:02-0:05) and loudness-matched, so start is 0.
+  // "end" = length of the file in seconds. To change a timing, re-cut the file (or ask for it) rather than editing start/end here.
   const CLIPS = {
-    spiderman:      {file:"spiderman.m4a",      start:1,  end:4},    // 0:01 - 0:04
-    thor:           {file:"thor.m4a",           start:72, end:74},   // 1:12 - 1:14
-    captainamerica: {file:"captainamerica.m4a", start:37, end:39},   // 0:37 - 0:39
-    ironman:        {file:"ironman.m4a",        start:40, end:49},   // 0:40 - 0:49
-    blackpanther:   {file:"blackpanther.m4a",   start:2,  end:4},    // 0:02 - 0:04
-    hulk:           {file:"hulk.mp3",           start:2,  end:5}     // 0:02 - 0:05
-  };                                                                  // doomsday: no clip here (its own sound system)
-  const VOL = 0.85, FADE = 0.25;   // volume, and fade-out length at the end of the clip (seconds)
+    spiderman:      {file:"spiderman.mp3",      start:0, end:3},
+    thor:           {file:"thor.mp3",           start:0, end:2},
+    captainamerica: {file:"captainamerica.mp3", start:0, end:2},
+    ironman:        {file:"ironman.mp3",        start:0, end:9},
+    blackpanther:   {file:"blackpanther.mp3",   start:0, end:2},
+    hulk:           {file:"hulk.mp3",           start:0, end:3}
+  };                                                                  // doomsday: I AM DOOM (the page's own sound)
+  const VOL = 1, FADE = 0.2;   // full volume (the files themselves are loudness-matched), fade-out length at the end (seconds)
 
   let el = null, timer = null, cine = false, lastClickId = null, pickedAt = 0;
   const soundOn = () => { try{ return localStorage.getItem("doomsday-sound") !== "off"; }catch(e){ return true; } };
@@ -37,7 +39,7 @@
     if(!c || !soundOn() || trailerOpen() || cine) return;
     if(window.__bedHold) window.__bedHold();                       // ambience steps aside while a profile clip plays
     if(window.__voiceCut) window.__voiceCut();                     // Victor / I AM DOOM stop if they are still talking
-    const a = new Audio(BASE + c.file + V);
+    const a = new Audio(CLIP_BASE + c.file + V);
     a.preload = "auto"; a.volume = VOL;
     try{ a.currentTime = c.start; }catch(e){}
     a.addEventListener("loadedmetadata", () => { if(a.currentTime < c.start) a.currentTime = c.start; });
@@ -207,11 +209,12 @@
         fetch(TICK_URL).then(r => r.arrayBuffer())
           .then(b => new Promise((res, rej) => actx.decodeAudioData(b, res, rej)))
           .then(buf => { tickBuf = buf; })
-          .catch(() => { actx = null; tickEl = new Audio(TICK_URL); tickEl.loop = true; tickEl.volume = TICK_VOL; });
+          .catch(() => { actx = null; tickEl = new Audio(TICK_URL); tickEl.loop = true; tickEl.volume = TICK_VOL; tickEl.addEventListener("error", () => { tickEl = null; }); });
         return;
       }catch(e){ actx = null; }
     }
     tickEl = new Audio(TICK_URL); tickEl.loop = true; tickEl.volume = TICK_VOL;
+    tickEl.addEventListener("error", () => { tickEl = null; });          // file missing: give up quietly
   }
   // browsers allow sound only after a first tap/click/key, so the clock starts from there
   ["pointerdown", "keydown", "touchend"].forEach(g => window.addEventListener(g, () => {
@@ -234,7 +237,8 @@
     loopSrc = s;
     return true;
   }
-  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el && !cine && !anyVoice();   // never under a voice
+  const tickAllowed = () => countdownOn() && soundOn() && !trailerOpen() && !document.hidden && !el && !cine && !anyVoice() && !victorHeld
+    && !(gate && gate.firstChild) && !document.documentElement.classList.contains("intro-on");   // never under a voice (incl. the wait before Victor), nor on the intro / "Who's Here?" screen
   setInterval(() => {                                  // mute / unmute without losing the beat; stop when the countdown ends
     if(!countdownOn()){ stopLoop(); return; }
     const on = tickAllowed();
@@ -435,6 +439,98 @@
     sync();
   })();
 
+  // ---------- 10) One highlighted "My Progress" button ----------
+  // The small progress row (counter, bar, Share progress, Reset) and the Select all button were easy to miss. They now live in
+  // one green floating button; tapping it opens a panel with the live progress and every action. The original elements are
+  // MOVED (not copied) into the panel, so all their existing behaviour keeps working.
+  (function(){
+    const row = document.querySelector(".progress-summary");
+    const ids = ["progress-text", "progress-split", "progress-time", "progress-fill", "share-btn", "progress-reset"];
+    const el_ = Object.fromEntries(ids.map(i => [i, document.getElementById(i)]));
+    if(!row || ids.some(i => !el_[i])) return;
+    const track = row.querySelector(".progress-track"), sel = document.getElementById("selall-btn");
+    if(!track) return;
+
+    const css = document.createElement("style");
+    css.textContent =
+      ".mp-fab{position:fixed;right:16px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--pwa-lift,0px));z-index:1100;display:flex;align-items:center;gap:9px;padding:11px 18px 14px;border:0;border-radius:999px;"
+      + "background:var(--doom);color:#04130A;font:700 14px/1 var(--font-body,'IBM Plex Sans',sans-serif);cursor:pointer;overflow:hidden;"
+      + "box-shadow:0 8px 26px rgba(0,0,0,.35),0 0 20px rgba(61,219,104,.45);transition:transform .2s ease,box-shadow .2s ease,bottom .35s cubic-bezier(.2,.8,.2,1);animation:mp-pulse 2.4s ease-out 1.2s 3}"
+      + ".mp-fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.4),0 0 26px rgba(61,219,104,.6)}"
+      + ".mp-fab:focus-visible{outline:3px solid var(--ink);outline-offset:3px}"
+      + ".mp-fab .mp-cnt{background:rgba(4,19,10,.16);border-radius:999px;padding:3px 9px;font-size:12px;font-variant-numeric:tabular-nums}"
+      + ".mp-fab .mp-bar{position:absolute;left:18px;right:18px;bottom:5px;height:3px;border-radius:3px;background:rgba(4,19,10,.22);overflow:hidden}"
+      + ".mp-fab .mp-bar i{display:block;height:100%;width:0;background:#04130A;border-radius:3px;transition:width .4s ease}"
+      + "@keyframes mp-pulse{0%{box-shadow:0 8px 26px rgba(0,0,0,.35),0 0 0 0 rgba(61,219,104,.55)}100%{box-shadow:0 8px 26px rgba(0,0,0,.35),0 0 0 18px rgba(61,219,104,0)}}"
+      + ".mp-panel{position:fixed;right:16px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 62px + var(--pwa-lift,0px));z-index:1110;width:min(380px,calc(100vw - 32px));padding:16px;border-radius:18px;"
+      + "background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.45);font-family:var(--font-body,'IBM Plex Sans',sans-serif);"
+      + "opacity:0;transform:translateY(10px);transition:opacity .2s ease,transform .25s cubic-bezier(.2,.8,.2,1)}"
+      + ".mp-panel.on{opacity:1;transform:none}.mp-panel[hidden]{display:none}"
+      + ".mp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}"
+      + ".mp-head b{font:700 20px/1 var(--font-display,'Big Shoulders Display',sans-serif);letter-spacing:.04em;text-transform:uppercase}"
+      + ".mp-x{background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:8px}.mp-x:hover{color:var(--ink)}"
+      + ".mp-stats{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-bottom:14px}"
+      + ".mp-stats .ptext{white-space:normal}.mp-stats #progress-text{font-size:16px;color:var(--ink);font-weight:600}"
+      + ".mp-stats .progress-track{flex:1 1 100%;min-width:0;order:5;margin:6px 0 4px;height:8px}"
+      + ".mp-stats #progress-time{order:6;flex:1 1 100%}"
+      + ".mp-actions{display:grid;gap:8px}"
+      + ".mp-panel .mp-actions button{width:100%;padding:11px 14px;border-radius:12px;font:600 13.5px var(--font-body,'IBM Plex Sans',sans-serif);cursor:pointer;text-decoration:none;white-space:normal;transition:background .15s ease,border-color .15s ease,color .15s ease}"
+      + ".mp-panel .mp-actions #share-btn{background:var(--doom);color:#04130A;border:1px solid var(--doom)}.mp-panel .mp-actions #share-btn:hover{background:var(--doom-glow);border-color:var(--doom-glow);color:#04130A}"
+      + ".mp-panel .mp-actions #selall-btn{background:var(--doom-dim);color:var(--doom);border:1px solid var(--doom)}.mp-panel .mp-actions #selall-btn:hover{background:var(--doom);color:#04130A}"
+      + ".mp-panel .mp-actions #progress-reset{background:none;color:var(--muted);border:1px solid var(--line)}.mp-panel .mp-actions #progress-reset:hover{color:var(--ember);border-color:var(--ember)}"
+      + ".mp-panel .mp-actions button:disabled{opacity:.45;cursor:default}"
+      + ".mp-tip{margin:12px 2px 0;font-size:12px;line-height:1.4;color:var(--muted)}"
+      + "@media (prefers-reduced-motion:reduce){.mp-fab{animation:none}.mp-panel{transition:opacity .15s}}";
+    document.head.appendChild(css);
+
+    const fab = document.createElement("button");
+    fab.type = "button"; fab.className = "mp-fab"; fab.id = "mp-fab";
+    fab.setAttribute("aria-haspopup", "dialog"); fab.setAttribute("aria-expanded", "false"); fab.setAttribute("aria-controls", "mp-panel");
+    fab.innerHTML = '<span aria-hidden="true">📊</span><span>My Progress</span><span class="mp-cnt" id="mp-cnt"></span><span class="mp-bar" aria-hidden="true"><i id="mp-barfill"></i></span>';
+
+    const panel = document.createElement("div");
+    panel.className = "mp-panel"; panel.id = "mp-panel"; panel.hidden = true;
+    panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", "My progress");
+    panel.innerHTML = '<div class="mp-head"><b>My progress</b><button type="button" class="mp-x" aria-label="Close">✕</button></div>'
+      + '<div class="mp-stats"></div><div class="mp-actions"></div>'
+      + '<p class="mp-tip">Tip: click one title, then Shift+click another to mark everything between them as watched.</p>';
+    panel.querySelector(".mp-stats").append(el_["progress-text"], el_["progress-split"], track, el_["progress-time"]);
+    const actions = panel.querySelector(".mp-actions");
+    actions.append(el_["share-btn"]); if(sel) actions.append(sel); actions.append(el_["progress-reset"]);
+    row.style.display = "none";                                  // the old row is empty now
+    document.body.append(fab, panel);
+
+    // live counter + mini bar on the button
+    const cnt = fab.querySelector("#mp-cnt"), mini = fab.querySelector("#mp-barfill");
+    function sync(){
+      const m = el_["progress-text"].textContent.match(/(\d+)\s+of\s+(\d+)/);
+      cnt.textContent = m ? m[1] + "/" + m[2] : "";
+      mini.style.width = el_["progress-fill"].style.width || "0%";
+    }
+    new MutationObserver(sync).observe(el_["progress-text"], {childList:true, characterData:true, subtree:true});
+    new MutationObserver(sync).observe(el_["progress-fill"], {attributes:true, attributeFilter:["style"]});
+    sync();
+
+    // open / close
+    let open = false;
+    function setOpen(v){
+      if(v === open) return; open = v;
+      fab.setAttribute("aria-expanded", String(v));
+      if(v){ panel.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on"))); }
+      else { panel.classList.remove("on"); setTimeout(() => { if(!open) panel.hidden = true; }, 260); }
+    }
+    fab.addEventListener("click", () => setOpen(!open));
+    panel.querySelector(".mp-x").addEventListener("click", () => setOpen(false));
+    document.addEventListener("pointerdown", e => { if(open && !panel.contains(e.target) && !fab.contains(e.target)) setOpen(false); }, true);
+    document.addEventListener("keydown", e => { if(e.key === "Escape" && open){ setOpen(false); fab.focus(); } });
+    el_["share-btn"].addEventListener("click", () => setOpen(false));     // the share card opens on top; get the panel out of the way
+
+    // Reset is one tap in a prominent place now, so ask first (capture phase: runs before the page's own reset handler)
+    actions.addEventListener("click", e => {
+      if(e.target.closest("#progress-reset") && !confirm("Reset all watched progress for this profile?")){ e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+  })();
+
   // ---------- 8) Install as an app (PWA) ----------
   // Adds the web-app manifest, registers sw.js, and shows an "Install CinePhobic" popup to EVERYONE (guests too, no sign-in
   // needed) a few seconds after the intro. If the browser has given us its install event the popup has a real Install button;
@@ -491,8 +587,10 @@
       + "@media (prefers-reduced-motion:reduce){.pwa-pop{transition:opacity .2s}}";
     document.head.appendChild(css);
 
+    const lift = px => document.documentElement.style.setProperty("--pwa-lift", px + "px");
     function hide(){
       if(!box) return;
+      lift(0);
       const b = box; box = null; b.classList.remove("on");
       setTimeout(() => b.remove(), 450);
     }
@@ -506,6 +604,7 @@
         + '<div class="t"><b>Install CinePhobic</b><span class="s">' + text + '</span></div>'
         + '<div class="b">' + (deferred ? '<button type="button" class="go">Install</button>' : "") + '<button type="button" class="no">' + (deferred ? "Not now" : "Got it") + '</button></div>';
       box.querySelector(".no").addEventListener("click", () => { remember(); hide(); });
+      if(innerWidth < 640) lift(box.offsetHeight + 12);
       const go = box.querySelector(".go");
       if(go) go.addEventListener("click", () => {
         const ev = deferred; if(!ev) return;
@@ -522,6 +621,7 @@
       box.className = "pwa-pop"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Install CinePhobic");
       document.body.appendChild(box);
       draw();
+      lift(innerWidth < 640 ? box.offsetHeight + 12 : 0);   // phone: the popup spans the screen, so the My Progress button sits above it
       requestAnimationFrame(() => requestAnimationFrame(() => box && box.classList.add("on")));
     }
 
